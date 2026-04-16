@@ -31,7 +31,7 @@ export function Topbar({ onMenuToggle }) {
           alt="Logo Wolf"
           className="h-5 w-5 rounded-full border border-slate-600 object-cover"
         />
-        Barbearia Wolf
+        BarbeariaWolf
       </div>
     </header>
   )

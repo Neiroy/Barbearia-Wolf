@@ -73,7 +73,7 @@ export function LoginPage() {
               className="h-24 w-24 rounded-xl object-cover md:h-28 md:w-28"
             />
           </div>
-          <p className="mt-4 text-xs uppercase tracking-[0.3em] text-sky-400">Barbearia Wolf</p>
+          <p className="mt-4 text-xs uppercase tracking-[0.3em] text-sky-400">BarbeariaWolf</p>
           <h1 className="mt-2 text-3xl font-semibold text-white">Painel de Acesso</h1>
           <p className="mt-2 text-sm text-slate-400">Sistema interno para admin e funcionario.</p>
         </div>

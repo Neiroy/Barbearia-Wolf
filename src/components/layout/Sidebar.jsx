@@ -56,7 +56,7 @@ export function Sidebar({ role, profileName, onSignOut, onNavigate }) {
             className="h-14 w-14 rounded-xl border border-slate-700 object-cover"
           />
           <div>
-            <p className="text-[10px] uppercase tracking-[0.24em] text-sky-400">Barbearia Wolf</p>
+            <p className="text-[10px] uppercase tracking-[0.24em] text-sky-400">BarbeariaWolf</p>
             <h1 className="text-xl font-semibold leading-tight text-slate-100">Sistema Premium</h1>
             <p className="mt-0.5 text-[11px] text-slate-400">
               {role === 'admin' ? 'Painel de gestao' : 'Painel do funcionario'}
