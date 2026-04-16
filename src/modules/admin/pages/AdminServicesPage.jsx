@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronDown, Pencil, PlusCircle, Scissors, Search, SlidersHorizontal, Trash2 } from 'lucide-react'
+import { ChevronDown, Filter, Pencil, PlusCircle, Scissors, Search, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog'
 import { FormField } from '../../../components/ui/FormFields'
 import { EmptyState, LoadingState } from '../../../components/ui/FeedbackStates'
@@ -217,6 +217,10 @@ export function AdminServicesPage() {
                 <option value="valor_asc">Menor preco</option>
               </select>
             </label>
+            <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300">
+              <Filter size={13} />
+              Filtros ativos
+            </div>
           </div>
         </Toolbar>
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BadgePercent, RefreshCw, Search, ShieldCheck, UsersRound } from 'lucide-react'
+import { BadgePercent, Filter, RefreshCw, Search, ShieldCheck, UsersRound } from 'lucide-react'
 import { DataTable } from '../../../components/ui/DataTable'
 import { EmptyState, LoadingState } from '../../../components/ui/FeedbackStates'
 import { FormField } from '../../../components/ui/FormFields'
@@ -198,15 +198,21 @@ export function AdminStaffPage() {
 
       <SectionCard title="Equipe cadastrada" subtitle="Selecione um perfil para editar regras financeiras.">
         <Toolbar>
-          <label className="relative w-full md:max-w-md">
-            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input
-              className="input !pl-11"
-              placeholder="Buscar funcionario por nome"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </label>
+          <div className="grid w-full gap-2 md:grid-cols-2 xl:grid-cols-4">
+            <label className="relative md:col-span-2 xl:col-span-3">
+              <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
+                className="input !pl-11"
+                placeholder="Buscar funcionario por nome"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </label>
+            <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300">
+              <Filter size={13} />
+              Filtros ativos
+            </div>
+          </div>
         </Toolbar>
 
         {filteredRows.length === 0 ? (
