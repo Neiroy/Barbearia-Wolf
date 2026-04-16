@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: #020617;
+  color: #f8fafc;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+.input {
+  @apply w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/25;
+}
+
+select.input {
+  color-scheme: dark;
+}
+
+select.input option {
+  background-color: #020617;
+  color: #f8fafc;
+}
+
+.btn-primary {
+  @apply rounded-lg bg-sky-500 px-4 py-2 font-medium text-slate-950 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+.btn-secondary {
+  @apply rounded-lg border border-slate-700 px-3 py-1.5 text-sm transition hover:bg-slate-800;
+}
+
+.btn-danger {
+  @apply rounded-lg border border-red-700 px-3 py-1.5 text-sm text-red-300 transition hover:bg-red-950/40;
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .app-main {
+    padding: 0.75rem;
+  }
+
+  .input {
+    padding-top: 0.45rem;
+    padding-bottom: 0.45rem;
+  }
+}
