@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
-import { Download, Filter, Search, UserRound, Wallet } from 'lucide-react'
+import { ChevronDown, Download, Filter, Search, SlidersHorizontal, UserRound, Wallet } from 'lucide-react'
 import { DataTable } from '../../../components/ui/DataTable'
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog'
 import { EmptyState, LoadingState } from '../../../components/ui/FeedbackStates'
@@ -267,7 +267,7 @@ export function AdminWeeklyReportsPage() {
           <label className="relative xl:col-span-2">
             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
-              className="input pl-9"
+              className="input !pl-11"
               placeholder="Buscar funcionario"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -289,20 +289,36 @@ export function AdminWeeklyReportsPage() {
             onClick={openNativeDatePicker}
             onChange={(event) => setWeekEnd(event.target.value)}
           />
-          <select className="input" value={employeeFilter} onChange={(event) => setEmployeeFilter(event.target.value)}>
-            <option value="all">Todos funcionarios</option>
-            {employees.map((employee) => (
-              <option key={employee} value={employee}>
-                {employee}
-              </option>
-            ))}
-          </select>
-          <select className="input" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-            <option value="all">Todos status</option>
-            <option value="aberto">Aberto</option>
-            <option value="pendente">Pendente</option>
-            <option value="pago">Pago</option>
-          </select>
+          <label className="relative">
+            <UserRound size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <select
+              className="input appearance-none !pl-11 !pr-10"
+              value={employeeFilter}
+              onChange={(event) => setEmployeeFilter(event.target.value)}
+            >
+              <option value="all">Todos funcionarios</option>
+              {employees.map((employee) => (
+                <option key={employee} value={employee}>
+                  {employee}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="relative">
+            <SlidersHorizontal size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <select
+              className="input appearance-none !pl-11 !pr-10"
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+            >
+              <option value="all">Todos status</option>
+              <option value="aberto">Aberto</option>
+              <option value="pendente">Pendente</option>
+              <option value="pago">Pago</option>
+            </select>
+          </label>
           <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300">
             <Filter size={13} />
             Filtros de semana
