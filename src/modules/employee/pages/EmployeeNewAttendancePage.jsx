@@ -46,12 +46,13 @@ export function EmployeeNewAttendancePage() {
     [selectedServices, form.valores_personalizados],
   )
   const isAdmin = profile?.tipo === 'admin'
+  const receivesCommission = Boolean(profile?.recebe_comissao)
   const dashboardLabel = isAdmin ? 'Admin' : 'Funcionario'
   const operationBadge = isAdmin ? 'Operacao administrativa' : 'Ordem de chegada'
   const goToAttendancesPath = isAdmin ? '/admin/atendimentos' : '/funcionario/meus-atendimentos'
   const comissaoEstimada = useMemo(
-    () => (valorFinal * Number(profile?.percentual_comissao || 0)) / 100,
-    [profile?.percentual_comissao, valorFinal],
+    () => (receivesCommission ? (valorFinal * Number(profile?.percentual_comissao || 0)) / 100 : 0),
+    [profile?.percentual_comissao, receivesCommission, valorFinal],
   )
 
   function toggleService(serviceId) {
@@ -276,7 +277,7 @@ export function EmployeeNewAttendancePage() {
             <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-3">
               <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-sky-300">
                 <ClipboardList size={13} />
-                Comissao estimada
+                {receivesCommission ? 'Comissao estimada' : 'Comissao (nao aplicavel)'}
               </p>
               <p className="mt-1 text-lg font-semibold text-sky-300">{formatCurrency(comissaoEstimada)}</p>
             </div>

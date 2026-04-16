@@ -14,6 +14,7 @@ import { formatCurrency } from '../../../utils/formatters'
 
 export function EmployeeWeeklySummaryPage() {
   const { profile } = useAuth()
+  const receivesCommission = Boolean(profile?.recebe_comissao)
   const [rows, setRows] = useState([])
 
   useEffect(() => {
@@ -85,9 +86,9 @@ export function EmployeeWeeklySummaryPage() {
           icon={<DollarSign size={18} />}
         />
         <PerformanceKpiCard
-          title="Comissao total"
+          title={receivesCommission ? 'Comissao total' : 'Comissao total (nao aplicavel)'}
           value={formatCurrency(totals.totalComissao)}
-          subtitle="Acumulado de comissao semanal"
+          subtitle={receivesCommission ? 'Acumulado de comissao semanal' : 'Perfil sem recebimento de comissao'}
           icon={<Wallet size={18} />}
         />
         <PerformanceKpiCard
@@ -124,7 +125,10 @@ export function EmployeeWeeklySummaryPage() {
           <SummaryGrid columns={3}>
             <StatCard label="Atendimentos" value={totals.totalServicos} />
             <StatCard label="Total vendido" value={formatCurrency(totals.totalVendido)} />
-            <StatCard label="Comissao" value={formatCurrency(totals.totalComissao)} />
+            <StatCard
+              label={receivesCommission ? 'Comissao' : 'Comissao (nao aplicavel)'}
+              value={formatCurrency(totals.totalComissao)}
+            />
           </SummaryGrid>
           <div className="mt-4 space-y-3">
             <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
@@ -149,7 +153,7 @@ export function EmployeeWeeklySummaryPage() {
       <SectionCard title="Observacoes da semana" subtitle="Leitura final da sua performance no periodo atual.">
         <p className="text-sm text-slate-300">
           Este resumo considera os atendimentos da semana atual respeitando seu perfil de acesso.
-          Mantenha os lancamentos em dia para ter uma visao precisa de produtividade e comissao.
+          Mantenha os lancamentos em dia para ter uma visao precisa de produtividade e resultados financeiros.
         </p>
       </SectionCard>
     </section>

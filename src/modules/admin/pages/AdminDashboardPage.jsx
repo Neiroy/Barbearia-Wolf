@@ -128,7 +128,7 @@ export function AdminDashboardPage() {
         actions={<QuickActionLinks actions={quickActions} />}
       />
 
-      <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
+      <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-6">
         <PrimaryKpiCard
           title="Faturamento do mes"
           value={formatCurrency(snapshot.monthRevenue)}
@@ -150,8 +150,20 @@ export function AdminDashboardPage() {
         <PrimaryKpiCard
           title="Comissoes no mes"
           value={formatCurrency(snapshot.monthCommissions)}
-          subtitle="Total de repasse para equipe"
+          subtitle="Somente equipe comissionada"
           icon={<Landmark size={18} />}
+        />
+        <PrimaryKpiCard
+          title="Receita dos funcionarios"
+          value={formatCurrency(snapshot.monthEmployeeRevenue)}
+          subtitle="Faturamento da equipe comissionada"
+          icon={<TrendingUp size={18} />}
+        />
+        <PrimaryKpiCard
+          title="Receita do dono/admin"
+          value={formatCurrency(snapshot.monthOwnerRevenue)}
+          subtitle="Producao operacional sem custo de comissao"
+          icon={<BadgeDollarSign size={18} />}
         />
       </div>
 

@@ -10,13 +10,14 @@ import { StatCard } from '../../../components/ui/StatCard'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { SummaryGrid } from '../../../components/ui/SummaryGrid'
 import { Toolbar } from '../../../components/ui/Toolbar'
-import { listWeeklyClosures, updateWeeklyClosureStatus } from '../../../services/supabase'
+import { groupAttendancesByCombo, listAttendances, listWeeklyClosures, updateWeeklyClosureStatus } from '../../../services/supabase'
 import { formatCurrency } from '../../../utils/formatters'
 import { Link } from 'react-router-dom'
 import { useToast } from '../../../context/ToastContext'
 
 export function AdminWeeklyReportsPage() {
   const [rows, setRows] = useState([])
+  const [ownerProductionRows, setOwnerProductionRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
@@ -31,7 +32,20 @@ export function AdminWeeklyReportsPage() {
   const loadWeeklyClosures = useCallback(async () => {
     setLoading(true)
     try {
-      setRows(await listWeeklyClosures(weekStart, weekEnd))
+      const [closureRows, attendances] = await Promise.all([
+        listWeeklyClosures(weekStart, weekEnd),
+        listAttendances({ startDate: weekStart, endDate: weekEnd }),
+      ])
+      const groupedByCombo = groupAttendancesByCombo(attendances)
+      const ownerGroups = groupedByCombo
+        .map((group) => {
+          const source = attendances.find((row) => row.venda_id === group.venda_id) || null
+          return { ...group, funcionario: source?.usuario?.nome || 'Sem nome', recebeComissao: Boolean(source?.usuario?.recebe_comissao) }
+        })
+        .filter((row) => !row.recebeComissao)
+        .sort((a, b) => Number(b.valor_servico) - Number(a.valor_servico))
+      setRows(closureRows)
+      setOwnerProductionRows(ownerGroups)
     } catch {
       showToast({
         tone: 'error',
@@ -91,6 +105,11 @@ export function AdminWeeklyReportsPage() {
       totalPendente,
     }
   }, [filteredRows])
+  const ownerTotals = useMemo(() => {
+    const totalAtendimentos = ownerProductionRows.length
+    const totalVendido = ownerProductionRows.reduce((sum, row) => sum + Number(row.valor_servico || 0), 0)
+    return { totalAtendimentos, totalVendido }
+  }, [ownerProductionRows])
 
   const destaque = filteredRows[0]?.funcionario || 'Sem dados'
 
@@ -230,6 +249,19 @@ export function AdminWeeklyReportsPage() {
         <StatCard label="Ticket medio semanal" value={formatCurrency(totals.ticketMedio)} hint="Media por atendimento" />
       </SummaryGrid>
 
+      <SummaryGrid columns={2}>
+        <StatCard
+          label="Producao dono/admin (atendimentos)"
+          value={ownerTotals.totalAtendimentos}
+          hint="Nao participa de fechamento de comissao"
+        />
+        <StatCard
+          label="Producao dono/admin (faturamento)"
+          value={formatCurrency(ownerTotals.totalVendido)}
+          hint="Receita operacional sem custo de comissao"
+        />
+      </SummaryGrid>
+
       <Toolbar>
         <div className="grid w-full gap-2 md:grid-cols-2 xl:grid-cols-6">
           <label className="relative xl:col-span-2">
@@ -360,6 +392,36 @@ export function AdminWeeklyReportsPage() {
           rows={filteredRows}
           empty="Nenhum atendimento registrado nesta semana."
         />
+        )}
+      </SectionCard>
+
+      <SectionCard
+        title="Producao do dono/admin"
+        subtitle="Atendimentos operacionais fora da folha de comissao da equipe."
+      >
+        {ownerProductionRows.length === 0 ? (
+          <EmptyState
+            title="Sem producao do dono/admin nesta semana"
+            description="Nao ha atendimentos de perfis sem comissao no periodo filtrado."
+          />
+        ) : (
+          <DataTable
+            columns={[
+              { key: 'funcionario', label: 'Responsavel' },
+              { key: 'cliente_nome', label: 'Cliente' },
+              {
+                key: 'valor_servico',
+                label: 'Valor',
+                render: (row) => <span className="font-semibold text-emerald-300">{formatCurrency(row.valor_servico)}</span>,
+              },
+              {
+                key: 'valor_comissao',
+                label: 'Comissao',
+                render: () => <span className="text-slate-400">{formatCurrency(0)}</span>,
+              },
+            ]}
+            rows={ownerProductionRows}
+          />
         )}
       </SectionCard>
 

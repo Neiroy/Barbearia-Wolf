@@ -41,13 +41,26 @@ export function calculateWeeklySummary(attendances) {
 
 export function calculateMonthlyFinancial(attendances, expenses) {
   const totalEntradas = attendances.reduce((sum, row) => sum + Number(row.valor_servico), 0)
-  const totalComissoes = attendances.reduce((sum, row) => sum + Number(row.valor_comissao), 0)
+  const faturamentoFuncionarios = attendances.reduce(
+    (sum, row) => (row.usuario?.recebe_comissao ? sum + Number(row.valor_servico) : sum),
+    0,
+  )
+  const faturamentoAdminDono = attendances.reduce(
+    (sum, row) => (!row.usuario?.recebe_comissao ? sum + Number(row.valor_servico) : sum),
+    0,
+  )
+  const totalComissoes = attendances.reduce(
+    (sum, row) => (row.usuario?.recebe_comissao ? sum + Number(row.valor_comissao) : sum),
+    0,
+  )
   const totalGastos = expenses.reduce((sum, row) => sum + Number(row.valor), 0)
   const lucroBruto = totalEntradas - totalComissoes
   const lucroLiquido = lucroBruto - totalGastos
 
   return {
     totalEntradas,
+    faturamentoFuncionarios,
+    faturamentoAdminDono,
     totalComissoes,
     totalGastos,
     lucroBruto,
@@ -91,6 +104,8 @@ export async function getAdminDashboardSnapshot() {
     monthRevenue: monthly.totalEntradas,
     monthExpenses: monthly.totalGastos,
     monthCommissions: monthly.totalComissoes,
+    monthEmployeeRevenue: monthly.faturamentoFuncionarios,
+    monthOwnerRevenue: monthly.faturamentoAdminDono,
     monthNetProfit: monthly.lucroLiquido,
     ticketMedio: groupedMonthAttendances.length ? monthly.totalEntradas / groupedMonthAttendances.length : 0,
     totalAttendances: groupedMonthAttendances.length,

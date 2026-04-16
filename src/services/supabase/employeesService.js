@@ -4,8 +4,8 @@ export async function listEmployees() {
   const { data, error } = await supabase
     .from('usuarios')
     .select('*')
-    .eq('tipo', 'funcionario')
-    .order('nome')
+    .order('tipo', { ascending: false })
+    .order('nome', { ascending: true })
   if (error) throw error
   return data
 }

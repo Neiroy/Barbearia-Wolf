@@ -105,9 +105,11 @@ export function AdminFinancePage() {
         }
       />
 
-      <SummaryGrid columns={5}>
-        <CurrencyCard label="Entradas" value={formatCurrency(totals.totalEntradas)} />
-        <CurrencyCard label="Comissoes" value={formatCurrency(totals.totalComissoes)} />
+      <SummaryGrid columns={7}>
+        <CurrencyCard label="Faturamento total" value={formatCurrency(totals.totalEntradas)} />
+        <CurrencyCard label="Faturamento funcionarios" value={formatCurrency(totals.faturamentoFuncionarios)} />
+        <CurrencyCard label="Faturamento dono/admin" value={formatCurrency(totals.faturamentoAdminDono)} />
+        <CurrencyCard label="Comissoes a pagar" value={formatCurrency(totals.totalComissoes)} />
         <CurrencyCard label="Gastos" value={formatCurrency(totals.totalGastos)} />
         <CurrencyCard label="Lucro bruto" value={formatCurrency(totals.lucroBruto)} />
         <CurrencyCard label="Lucro liquido" value={formatCurrency(totals.lucroLiquido)} />

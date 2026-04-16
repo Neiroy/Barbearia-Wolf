@@ -14,6 +14,7 @@ import { formatCurrency, formatDateTime } from '../../../utils/formatters'
 
 export function EmployeeMyAttendancesPage() {
   const { profile } = useAuth()
+  const receivesCommission = Boolean(profile?.recebe_comissao)
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [expandedCombos, setExpandedCombos] = useState({})
@@ -159,7 +160,11 @@ export function EmployeeMyAttendancesPage() {
       <SummaryGrid columns={4}>
         <StatCard label="Total de atendimentos" value={totals.totalAtendimentos} hint="No periodo selecionado" />
         <StatCard label="Total vendido" value={formatCurrency(totals.totalVendido)} hint="Soma dos servicos" />
-        <StatCard label="Total de comissao" value={formatCurrency(totals.totalComissao)} hint="Comissao acumulada" />
+        <StatCard
+          label={receivesCommission ? 'Total de comissao' : 'Comissao (nao aplicavel)'}
+          value={formatCurrency(totals.totalComissao)}
+          hint={receivesCommission ? 'Comissao acumulada' : 'Este perfil nao recebe comissao'}
+        />
         <StatCard
           label="Ticket medio"
           value={formatCurrency(totals.ticketMedio)}
@@ -305,7 +310,7 @@ export function EmployeeMyAttendancesPage() {
                   render: (row) => (
                     <span className="inline-flex items-center gap-1 font-semibold text-sky-300">
                       <Wallet size={13} />
-                      {formatCurrency(row.valor_comissao)}
+                      {receivesCommission ? formatCurrency(row.valor_comissao) : formatCurrency(0)}
                     </span>
                   ),
                 },

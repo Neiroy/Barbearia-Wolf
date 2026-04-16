@@ -103,10 +103,29 @@ export function AdminAttendancesPage() {
   const totals = useMemo(() => {
     const totalAtendimentos = filteredRows.length
     const totalVendido = filteredRows.reduce((sum, row) => sum + Number(row.valor_servico), 0)
-    const totalComissao = filteredRows.reduce((sum, row) => sum + Number(row.valor_comissao), 0)
+    const totalComissao = filteredRows.reduce(
+      (sum, row) => (row.usuario?.recebe_comissao ? sum + Number(row.valor_comissao) : sum),
+      0,
+    )
+    const faturamentoFuncionarios = filteredRows.reduce(
+      (sum, row) => (row.usuario?.recebe_comissao ? sum + Number(row.valor_servico) : sum),
+      0,
+    )
+    const faturamentoAdminDono = filteredRows.reduce(
+      (sum, row) => (!row.usuario?.recebe_comissao ? sum + Number(row.valor_servico) : sum),
+      0,
+    )
     const ticketMedio = totalAtendimentos ? totalVendido / totalAtendimentos : 0
     const totalFuncionarios = new Set(filteredRows.map((row) => row.usuario?.nome).filter(Boolean)).size
-    return { totalAtendimentos, totalVendido, totalComissao, ticketMedio, totalFuncionarios }
+    return {
+      totalAtendimentos,
+      totalVendido,
+      totalComissao,
+      faturamentoFuncionarios,
+      faturamentoAdminDono,
+      ticketMedio,
+      totalFuncionarios,
+    }
   }, [filteredRows])
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize))
@@ -206,10 +225,20 @@ export function AdminAttendancesPage() {
         }
       />
 
-      <SummaryGrid columns={5}>
+      <SummaryGrid columns={7}>
         <StatCard label="Total de atendimentos" value={totals.totalAtendimentos} hint="No periodo filtrado" />
-        <StatCard label="Total vendido" value={formatCurrency(totals.totalVendido)} hint="Receita consolidada" />
-        <StatCard label="Total de comissao" value={formatCurrency(totals.totalComissao)} hint="Comissao da equipe" />
+        <StatCard label="Total vendido" value={formatCurrency(totals.totalVendido)} hint="Receita consolidada geral" />
+        <StatCard
+          label="Receita da equipe"
+          value={formatCurrency(totals.faturamentoFuncionarios)}
+          hint="Somente quem recebe comissao"
+        />
+        <StatCard
+          label="Receita dono/admin"
+          value={formatCurrency(totals.faturamentoAdminDono)}
+          hint="Producao sem custo de comissao"
+        />
+        <StatCard label="Comissao a pagar" value={formatCurrency(totals.totalComissao)} hint="Apenas equipe comissionada" />
         <StatCard label="Ticket medio" value={formatCurrency(totals.ticketMedio)} hint="Media por atendimento" />
         <StatCard label="Funcionarios ativos" value={totals.totalFuncionarios} hint="Com atendimento no periodo" />
       </SummaryGrid>
@@ -312,9 +341,9 @@ export function AdminAttendancesPage() {
                       <UserRound size={13} className="text-slate-500" />
                       {row.usuario?.nome || '-'}
                     </span>
-                    {row.usuario?.tipo === 'admin' ? (
+                    {!row.usuario?.recebe_comissao ? (
                       <span className="inline-flex rounded-full border border-sky-500/35 bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-300">
-                        Atendimento do admin (100%)
+                        Producao do dono/admin (sem comissao)
                       </span>
                     ) : null}
                   </div>

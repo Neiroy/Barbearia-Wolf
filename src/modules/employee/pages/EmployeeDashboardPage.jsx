@@ -14,6 +14,7 @@ import { formatCurrency, formatDateTime } from '../../../utils/formatters'
 
 export function EmployeeDashboardPage() {
   const { profile } = useAuth()
+  const receivesCommission = Boolean(profile?.recebe_comissao)
   const [rows, setRows] = useState([])
   const [expandedCombos, setExpandedCombos] = useState({})
 
@@ -124,15 +125,15 @@ export function EmployeeDashboardPage() {
           icon={<DollarSign size={18} />}
         />
         <PerformanceKpiCard
-          title="Comissao da semana"
+          title={receivesCommission ? 'Comissao da semana' : 'Comissao da semana (nao aplicavel)'}
           value={formatCurrency(weekly.totalComissao)}
-          subtitle="Acumulado de comissao semanal"
+          subtitle={receivesCommission ? 'Acumulado de comissao semanal' : 'Perfil sem recebimento de comissao'}
           icon={<Wallet size={18} />}
         />
         <PerformanceKpiCard
-          title="Comissao do mes"
+          title={receivesCommission ? 'Comissao do mes' : 'Comissao do mes (nao aplicavel)'}
           value={formatCurrency(monthSummary.totalComissao)}
-          subtitle="Total de comissao no periodo mensal"
+          subtitle={receivesCommission ? 'Total de comissao no periodo mensal' : 'Perfil sem recebimento de comissao'}
           icon={<TrendingUp size={18} />}
         />
       </div>
@@ -142,7 +143,10 @@ export function EmployeeDashboardPage() {
           <SummaryGrid columns={3}>
             <StatCard label="Atendimentos na semana" value={weekly.totalServicos} />
             <StatCard label="Valor vendido na semana" value={formatCurrency(weekly.totalVendido)} />
-            <StatCard label="Comissao acumulada" value={formatCurrency(weekly.totalComissao)} />
+            <StatCard
+              label={receivesCommission ? 'Comissao acumulada' : 'Comissao (nao aplicavel)'}
+              value={formatCurrency(weekly.totalComissao)}
+            />
           </SummaryGrid>
         </SectionCard>
 
@@ -150,7 +154,10 @@ export function EmployeeDashboardPage() {
           <SummaryGrid columns={3}>
             <StatCard label="Atendimentos no mes" value={monthSummary.totalServicos} />
             <StatCard label="Total vendido no mes" value={formatCurrency(monthSummary.totalVendido)} />
-            <StatCard label="Comissao do mes" value={formatCurrency(monthSummary.totalComissao)} />
+            <StatCard
+              label={receivesCommission ? 'Comissao do mes' : 'Comissao do mes (nao aplicavel)'}
+              value={formatCurrency(monthSummary.totalComissao)}
+            />
           </SummaryGrid>
         </SectionCard>
       </div>

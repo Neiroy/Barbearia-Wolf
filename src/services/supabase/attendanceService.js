@@ -3,7 +3,9 @@ import { supabase } from '../../lib/supabase'
 export async function listAttendances(filters = {}) {
   let query = supabase
     .from('atendimentos')
-    .select('id, venda_id, usuario_id, cliente_nome, servico_id, valor_servico, percentual_comissao, valor_comissao, data_hora, created_at, usuario:usuarios(nome,tipo), servico:servicos(nome)')
+    .select(
+      'id, venda_id, usuario_id, cliente_nome, servico_id, valor_servico, percentual_comissao, valor_comissao, data_hora, created_at, usuario:usuarios(nome,tipo,tipo_remuneracao,recebe_comissao,percentual_comissao,participa_fechamento_comissao), servico:servicos(nome)',
+    )
     .order('data_hora', { ascending: false })
 
   if (filters.usuarioId) query = query.eq('usuario_id', filters.usuarioId)
@@ -24,14 +26,7 @@ export async function saveAttendance(payload) {
     p_data_hora: payload.data_hora,
   })
 
-  if (!rpcError) return
-
-  const comissao = (Number(payload.valor_servico) * Number(payload.percentual_comissao || 0)) / 100
-  const { error } = await supabase.from('atendimentos').insert({
-    ...payload,
-    valor_comissao: comissao,
-  })
-  if (error) throw error
+  if (rpcError) throw rpcError
 }
 
 export async function saveAttendanceBatch(payload) {
@@ -104,7 +99,9 @@ export async function listWeeklyClosures(startDate, endDate, options = {}) {
 
   const { data, error } = await supabase
     .from('fechamentos_semanais')
-    .select('id, usuario_id, total_servicos, total_vendido, total_comissao, status_pagamento, usuario:usuarios(nome)')
+    .select(
+      'id, usuario_id, total_servicos, total_vendido, total_comissao, status_pagamento, usuario:usuarios(nome,tipo,tipo_remuneracao,recebe_comissao,participa_fechamento_comissao)',
+    )
     .eq('semana_inicio', startDate)
     .eq('semana_fim', endDate)
     .order('total_vendido', { ascending: false })

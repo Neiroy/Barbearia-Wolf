@@ -28,7 +28,10 @@ create table public.usuarios (
   nome text not null,
   email text unique not null,
   tipo text not null check (tipo in ('admin', 'funcionario')),
+  tipo_remuneracao text not null default 'comissionado' check (tipo_remuneracao in ('dono', 'comissionado', 'fixo')),
+  recebe_comissao boolean not null default true,
   percentual_comissao numeric(5,2) not null default 40,
+  participa_fechamento_comissao boolean not null default true,
   created_at timestamptz not null default now()
 );
 
@@ -126,13 +129,25 @@ begin
   limit 1;
 
   if admin_uid is not null then
-    insert into public.usuarios (id, nome, email, tipo, percentual_comissao)
-    values (admin_uid, 'gabrielr', 'gabrielr@barbeariawolf.com', 'admin', 100)
+    insert into public.usuarios (
+      id,
+      nome,
+      email,
+      tipo,
+      tipo_remuneracao,
+      recebe_comissao,
+      percentual_comissao,
+      participa_fechamento_comissao
+    )
+    values (admin_uid, 'gabrielr', 'gabrielr@barbeariawolf.com', 'admin', 'dono', false, 0, false)
     on conflict (id) do update
     set nome = excluded.nome,
         email = excluded.email,
         tipo = excluded.tipo,
-        percentual_comissao = excluded.percentual_comissao;
+        tipo_remuneracao = excluded.tipo_remuneracao,
+        recebe_comissao = excluded.recebe_comissao,
+        percentual_comissao = excluded.percentual_comissao,
+        participa_fechamento_comissao = excluded.participa_fechamento_comissao;
   end if;
 
   select id into funcionario_uid
@@ -141,13 +156,25 @@ begin
   limit 1;
 
   if funcionario_uid is not null then
-    insert into public.usuarios (id, nome, email, tipo, percentual_comissao)
-    values (funcionario_uid, 'kayke', 'kayke@barbeariawolf.com', 'funcionario', 40)
+    insert into public.usuarios (
+      id,
+      nome,
+      email,
+      tipo,
+      tipo_remuneracao,
+      recebe_comissao,
+      percentual_comissao,
+      participa_fechamento_comissao
+    )
+    values (funcionario_uid, 'kayke', 'kayke@barbeariawolf.com', 'funcionario', 'comissionado', true, 40, true)
     on conflict (id) do update
     set nome = excluded.nome,
         email = excluded.email,
         tipo = excluded.tipo,
-        percentual_comissao = excluded.percentual_comissao;
+        tipo_remuneracao = excluded.tipo_remuneracao,
+        recebe_comissao = excluded.recebe_comissao,
+        percentual_comissao = excluded.percentual_comissao,
+        participa_fechamento_comissao = excluded.participa_fechamento_comissao;
   end if;
 end
 $$;
@@ -164,7 +191,7 @@ as $$
 declare
   v_servico record;
   v_percentual numeric(5,2);
-  v_tipo text;
+  v_recebe_comissao boolean;
 begin
   select id, valor, valor_editavel into v_servico
   from public.servicos
@@ -174,17 +201,17 @@ begin
     raise exception 'Servico invalido ou inativo.';
   end if;
 
-  select tipo, percentual_comissao
-    into v_tipo, v_percentual
+  select percentual_comissao, recebe_comissao
+    into v_percentual, v_recebe_comissao
   from public.usuarios
   where id = new.usuario_id;
 
-  if v_percentual is null then
+  if v_percentual is null or v_recebe_comissao is null then
     raise exception 'Funcionario invalido para comissao.';
   end if;
 
-  if v_tipo = 'admin' then
-    v_percentual := 100;
+  if v_recebe_comissao = false then
+    v_percentual := 0;
   end if;
 
   if v_servico.valor_editavel = false then
@@ -315,6 +342,8 @@ as $$
   join public.usuarios u on u.id = a.usuario_id
   where a.data_hora >= (p_inicio::timestamptz)
     and a.data_hora < ((p_fim + 1)::timestamptz)
+    and u.recebe_comissao = true
+    and u.participa_fechamento_comissao = true
   group by a.usuario_id, u.nome;
 $$;
 
