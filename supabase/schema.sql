@@ -63,6 +63,9 @@ create table public.gastos (
   descricao text not null,
   tipo text not null check (tipo in ('fixo', 'variavel', 'produto', 'manutencao', 'operacao', 'outros')),
   valor numeric(10,2) not null check (valor >= 0),
+  recorrente_mensal boolean not null default false,
+  origem_recorrente_id uuid null references public.gastos(id) on delete set null,
+  competencia_mes date not null default date_trunc('month', current_date)::date,
   data date not null default current_date,
   criado_por uuid not null references public.usuarios(id) on delete restrict,
   created_at timestamptz not null default now()
@@ -89,6 +92,9 @@ create table public.fechamentos_mensais (
   total_comissoes numeric(10,2) not null default 0,
   lucro_bruto numeric(10,2) not null default 0,
   lucro_liquido numeric(10,2) not null default 0,
+  status_fechamento text not null default 'aberto' check (status_fechamento in ('aberto', 'fechado')),
+  fechado_em timestamptz,
+  fechado_por uuid references public.usuarios(id) on delete set null,
   created_at timestamptz not null default now(),
   unique (referencia_mes)
 );

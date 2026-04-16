@@ -10,15 +10,26 @@ import { FormField, SelectField } from '../../../components/ui/FormFields'
 import { PageHeader } from '../../../components/ui/PageHeader'
 import { SectionCard } from '../../../components/ui/SectionCard'
 import { Toolbar } from '../../../components/ui/Toolbar'
-import { calculateMonthlyFinancial, listAttendances, listExpenses, saveExpense } from '../../../services/supabase'
+import {
+  calculateMonthlyFinancial,
+  closeMonthSnapshot,
+  getMonthlyClosure,
+  listAttendances,
+  listExpenses,
+  reopenMonthSnapshot,
+  saveExpense,
+} from '../../../services/supabase'
 import { formatCurrency, formatCurrencyInput, formatDate, parseCurrencyInput } from '../../../utils/formatters'
 import { useToast } from '../../../context/ToastContext'
 import { captureAppError } from '../../../lib/observability'
 
 const initialExpense = {
+  id: '',
   descricao: '',
   tipo: 'fixo',
   valor: '',
+  recorrente_mensal: false,
+  origem_recorrente_id: null,
   data: dayjs().format('YYYY-MM-DD'),
 }
 
@@ -29,6 +40,8 @@ export function AdminFinancePage() {
   const [attendances, setAttendances] = useState([])
   const [expenses, setExpenses] = useState([])
   const [newExpense, setNewExpense] = useState(initialExpense)
+  const [editScope, setEditScope] = useState('mes')
+  const [monthClosure, setMonthClosure] = useState(null)
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [sortOrder, setSortOrder] = useState('data_desc')
@@ -39,8 +52,14 @@ export function AdminFinancePage() {
     try {
       const startDate = dayjs(month).startOf('month').format('YYYY-MM-DD')
       const endDate = dayjs(month).endOf('month').format('YYYY-MM-DD')
-      setAttendances(await listAttendances({ startDate, endDate }))
-      setExpenses(await listExpenses(month))
+      const [attendanceRows, expenseRows, closureRow] = await Promise.all([
+        listAttendances({ startDate, endDate }),
+        listExpenses(month),
+        getMonthlyClosure(month),
+      ])
+      setAttendances(attendanceRows)
+      setExpenses(expenseRows)
+      setMonthClosure(closureRow)
     } catch (error) {
       captureAppError(error, { source: 'AdminFinancePage.reload', month })
       showToast({ tone: 'error', title: 'Falha ao recarregar financeiro', description: error.message || 'Tente novamente.' })
@@ -52,8 +71,14 @@ export function AdminFinancePage() {
       try {
         const startDate = dayjs(month).startOf('month').format('YYYY-MM-DD')
         const endDate = dayjs(month).endOf('month').format('YYYY-MM-DD')
-        setAttendances(await listAttendances({ startDate, endDate }))
-        setExpenses(await listExpenses(month))
+        const [attendanceRows, expenseRows, closureRow] = await Promise.all([
+          listAttendances({ startDate, endDate }),
+          listExpenses(month),
+          getMonthlyClosure(month),
+        ])
+        setAttendances(attendanceRows)
+        setExpenses(expenseRows)
+        setMonthClosure(closureRow)
       } catch (error) {
         captureAppError(error, { source: 'AdminFinancePage.loadMonthlyData', month })
         showToast({ tone: 'error', title: 'Falha ao carregar financeiro', description: error.message || 'Tente novamente.' })
@@ -104,17 +129,54 @@ export function AdminFinancePage() {
         title="Financeiro mensal"
         description="Entradas, gastos, comissoes e resultado do mes."
         actions={
-          <input
-            type="month"
-            className="input w-full sm:w-44"
-            value={dayjs(month).format('YYYY-MM')}
-            onFocus={openNativeDatePicker}
-            onClick={openNativeDatePicker}
-            onChange={(event) => {
-              setCurrentPage(1)
-              setMonth(`${event.target.value}-01`)
-            }}
-          />
+          <div className="flex w-full flex-wrap items-center justify-end gap-2 lg:w-auto">
+            <input
+              type="month"
+              className="input w-full sm:w-44"
+              value={dayjs(month).format('YYYY-MM')}
+              onFocus={openNativeDatePicker}
+              onClick={openNativeDatePicker}
+              onChange={(event) => {
+                setCurrentPage(1)
+                setMonth(`${event.target.value}-01`)
+              }}
+            />
+            {monthClosure?.status_fechamento === 'fechado' ? (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={async () => {
+                  try {
+                    await reopenMonthSnapshot(month)
+                    showToast({ tone: 'success', title: 'Mes reaberto para edicao' })
+                    reload()
+                  } catch (error) {
+                    captureAppError(error, { source: 'AdminFinancePage.reopenMonth', month })
+                    showToast({ tone: 'error', title: 'Falha ao reabrir mes', description: error.message || 'Tente novamente.' })
+                  }
+                }}
+              >
+                Reabrir mes
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={async () => {
+                  try {
+                    await closeMonthSnapshot({ month, userId: profile?.id, attendances, expenses })
+                    showToast({ tone: 'success', title: 'Mes fechado com sucesso' })
+                    reload()
+                  } catch (error) {
+                    captureAppError(error, { source: 'AdminFinancePage.closeMonth', month })
+                    showToast({ tone: 'error', title: 'Falha ao fechar mes', description: error.message || 'Tente novamente.' })
+                  }
+                }}
+              >
+                Fechar mes
+              </button>
+            )}
+          </div>
         }
       />
 
@@ -134,12 +196,38 @@ export function AdminFinancePage() {
           onSubmit={async (event) => {
             event.preventDefault()
             try {
+              if (monthClosure?.status_fechamento === 'fechado') {
+                throw new Error('Este mes esta fechado. Reabra o mes para editar gastos.')
+              }
+
+              if (
+                newExpense.id &&
+                newExpense.tipo === 'fixo' &&
+                editScope === 'recorrencia' &&
+                (newExpense.recorrente_mensal || newExpense.origem_recorrente_id)
+              ) {
+                const templateId = newExpense.origem_recorrente_id || newExpense.id
+                await saveExpense({
+                  id: templateId,
+                  descricao: newExpense.descricao,
+                  tipo: 'fixo',
+                  valor: parseCurrencyInput(newExpense.valor),
+                  recorrente_mensal: true,
+                  data: newExpense.data,
+                  criado_por: profile.id,
+                })
+                showToast({ tone: 'success', title: 'Recorrencia futura atualizada' })
+                reload()
+                return
+              }
+
               await saveExpense({
                 ...newExpense,
                 valor: parseCurrencyInput(newExpense.valor),
                 criado_por: profile.id,
               })
               setNewExpense(initialExpense)
+              setEditScope('mes')
               showToast({ tone: 'success', title: 'Gasto salvo com sucesso' })
               reload()
             } catch (error) {
@@ -159,7 +247,13 @@ export function AdminFinancePage() {
           <SelectField
             label="Categoria"
             value={newExpense.tipo}
-            onChange={(value) => setNewExpense((old) => ({ ...old, tipo: value }))}
+            onChange={(value) =>
+              setNewExpense((old) => ({
+                ...old,
+                tipo: value,
+                recorrente_mensal: value === 'fixo' ? old.recorrente_mensal : false,
+              }))
+            }
             options={EXPENSE_TYPES}
           />
           <FormField label="Valor">
@@ -188,9 +282,37 @@ export function AdminFinancePage() {
           </FormField>
           <div className="flex items-end">
             <button className="btn-primary w-full" type="submit">
-              Salvar gasto
+              {newExpense.id ? 'Atualizar gasto' : 'Salvar gasto'}
             </button>
           </div>
+          {newExpense.tipo === 'fixo' ? (
+            <div className="sm:col-span-2 xl:col-span-5">
+              <label className="inline-flex items-center gap-2 text-xs uppercase tracking-wide text-slate-400">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border border-slate-700 bg-slate-950"
+                  checked={Boolean(newExpense.recorrente_mensal)}
+                  onChange={(event) =>
+                    setNewExpense((old) => ({ ...old, recorrente_mensal: event.target.checked }))
+                  }
+                />
+                Repetir mensalmente (gasto fixo recorrente)
+              </label>
+            </div>
+          ) : null}
+          {newExpense.id && newExpense.tipo === 'fixo' && (newExpense.recorrente_mensal || newExpense.origem_recorrente_id) ? (
+            <div className="sm:col-span-2 xl:col-span-5">
+              <SelectField
+                label="Modo de edicao do gasto fixo"
+                value={editScope}
+                onChange={(value) => setEditScope(value)}
+                options={[
+                  { value: 'mes', label: 'Editar so este mes' },
+                  { value: 'recorrencia', label: 'Editar recorrencia futura' },
+                ]}
+              />
+            </div>
+          ) : null}
         </form>
       </SectionCard>
 
@@ -277,8 +399,43 @@ export function AdminFinancePage() {
                 columns={[
                   { key: 'descricao', label: 'Descricao' },
                   { key: 'tipo', label: 'Categoria' },
+                  {
+                    key: 'recorrente_mensal',
+                    label: 'Recorrencia',
+                    render: (row) =>
+                      row.tipo === 'fixo'
+                        ? row.recorrente_mensal
+                          ? 'Fixo mensal'
+                          : row.origem_recorrente_id
+                            ? 'Fixo (gerado)'
+                            : 'Fixo pontual'
+                        : 'Variavel',
+                  },
                   { key: 'data', label: 'Data', render: (row) => formatDate(row.data) },
                   { key: 'valor', label: 'Valor', render: (row) => formatCurrency(row.valor) },
+                  {
+                    key: 'acao',
+                    label: 'Acao',
+                    render: (row) => (
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() =>
+                          setNewExpense({
+                            id: row.id,
+                            descricao: row.descricao || '',
+                            tipo: row.tipo || 'fixo',
+                            valor: formatCurrencyInput(row.valor || 0),
+                            recorrente_mensal: Boolean(row.recorrente_mensal),
+                            origem_recorrente_id: row.origem_recorrente_id || null,
+                            data: row.data || dayjs().format('YYYY-MM-DD'),
+                          })
+                        }
+                      >
+                        Editar
+                      </button>
+                    ),
+                  },
                 ]}
                 rows={paginatedExpenses}
                 empty="Nenhum gasto registrado neste mes."
