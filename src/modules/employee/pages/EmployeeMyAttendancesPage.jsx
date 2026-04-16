@@ -176,7 +176,7 @@ export function EmployeeMyAttendancesPage() {
             <label className="relative xl:col-span-2">
               <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
-                className="input pl-9"
+                className="input pl-10"
                 placeholder="Buscar cliente"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -186,7 +186,7 @@ export function EmployeeMyAttendancesPage() {
             <label className="relative">
               <Filter size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <select
-                className="input pl-9"
+                className="input pl-10 pr-8"
                 value={period}
                 onChange={(event) => setPeriod(event.target.value)}
               >
@@ -200,7 +200,7 @@ export function EmployeeMyAttendancesPage() {
             <label className="relative">
               <Scissors size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <select
-                className="input pl-9"
+                className="input pl-10 pr-8"
                 value={serviceFilter}
                 onChange={(event) => setServiceFilter(event.target.value)}
               >
