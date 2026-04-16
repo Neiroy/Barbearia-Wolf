@@ -154,16 +154,19 @@ export function AdminServicesPage() {
             />
           </FormField>
           <FormField label="Valor editavel">
-            <select
-              className="input"
-              value={String(form.valor_editavel)}
-              onChange={(event) =>
-                setForm((old) => ({ ...old, valor_editavel: event.target.value === 'true' }))
-              }
-            >
-              <option value="false">Nao</option>
-              <option value="true">Sim</option>
-            </select>
+            <div className="relative">
+              <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <select
+                className="input appearance-none !pr-10"
+                value={String(form.valor_editavel)}
+                onChange={(event) =>
+                  setForm((old) => ({ ...old, valor_editavel: event.target.value === 'true' }))
+                }
+              >
+                <option value="false">Nao</option>
+                <option value="true">Sim</option>
+              </select>
+            </div>
           </FormField>
           <div className="flex items-end gap-2">
             <button type="submit" className="btn-primary inline-flex w-full items-center justify-center gap-2" disabled={saving}>

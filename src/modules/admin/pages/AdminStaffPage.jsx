@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BadgePercent, Filter, RefreshCw, Search, ShieldCheck, UsersRound } from 'lucide-react'
+import { BadgePercent, ChevronDown, Filter, RefreshCw, Search, ShieldCheck, UsersRound } from 'lucide-react'
 import { DataTable } from '../../../components/ui/DataTable'
 import { EmptyState, LoadingState } from '../../../components/ui/FeedbackStates'
 import { FormField } from '../../../components/ui/FormFields'
@@ -128,45 +128,54 @@ export function AdminStaffPage() {
             <input className="input" value={form.tipo} readOnly />
           </FormField>
           <FormField label="Tipo de remuneracao">
-            <select
-              className="input"
-              value={form.tipo_remuneracao}
-              onChange={(event) => setForm((old) => ({ ...old, tipo_remuneracao: event.target.value }))}
-            >
-              <option value="dono">Dono</option>
-              <option value="comissionado">Comissionado</option>
-              <option value="fixo">Fixo</option>
-            </select>
+            <div className="relative">
+              <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <select
+                className="input appearance-none !pr-10"
+                value={form.tipo_remuneracao}
+                onChange={(event) => setForm((old) => ({ ...old, tipo_remuneracao: event.target.value }))}
+              >
+                <option value="dono">Dono</option>
+                <option value="comissionado">Comissionado</option>
+                <option value="fixo">Fixo</option>
+              </select>
+            </div>
           </FormField>
           <FormField label="Recebe comissao">
-            <select
-              className="input"
-              value={form.recebe_comissao ? 'true' : 'false'}
-              onChange={(event) =>
-                setForm((old) => ({
-                  ...old,
-                  recebe_comissao: event.target.value === 'true',
-                }))
-              }
-            >
-              <option value="true">Sim</option>
-              <option value="false">Nao</option>
-            </select>
+            <div className="relative">
+              <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <select
+                className="input appearance-none !pr-10"
+                value={form.recebe_comissao ? 'true' : 'false'}
+                onChange={(event) =>
+                  setForm((old) => ({
+                    ...old,
+                    recebe_comissao: event.target.value === 'true',
+                  }))
+                }
+              >
+                <option value="true">Sim</option>
+                <option value="false">Nao</option>
+              </select>
+            </div>
           </FormField>
           <FormField label="Participa fechamento">
-            <select
-              className="input"
-              value={form.participa_fechamento_comissao ? 'true' : 'false'}
-              onChange={(event) =>
-                setForm((old) => ({
-                  ...old,
-                  participa_fechamento_comissao: event.target.value === 'true',
-                }))
-              }
-            >
-              <option value="true">Sim</option>
-              <option value="false">Nao</option>
-            </select>
+            <div className="relative">
+              <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <select
+                className="input appearance-none !pr-10"
+                value={form.participa_fechamento_comissao ? 'true' : 'false'}
+                onChange={(event) =>
+                  setForm((old) => ({
+                    ...old,
+                    participa_fechamento_comissao: event.target.value === 'true',
+                  }))
+                }
+              >
+                <option value="true">Sim</option>
+                <option value="false">Nao</option>
+              </select>
+            </div>
           </FormField>
           <FormField label="Percentual de comissao">
             <input
