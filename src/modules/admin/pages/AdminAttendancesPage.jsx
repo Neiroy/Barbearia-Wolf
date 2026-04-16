@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
-import { CalendarRange, ChevronLeft, ChevronRight, CircleDollarSign, Clock3, Download, Filter, Scissors, Search, UserRound, Wallet } from 'lucide-react'
+import { CalendarRange, ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign, Clock3, Download, Filter, Scissors, Search, SlidersHorizontal, UserRound, Wallet } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { DataTable } from '../../../components/ui/DataTable'
 import { EmptyState, LoadingState } from '../../../components/ui/FeedbackStates'
@@ -219,7 +219,7 @@ export function AdminAttendancesPage() {
           <label className="relative xl:col-span-2">
             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
-              className="input pl-9"
+              className="input !pl-11"
               placeholder="Buscar cliente, funcionario ou servico"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -241,30 +241,42 @@ export function AdminAttendancesPage() {
             onClick={openNativeDatePicker}
             onChange={(e) => setEndDate(e.target.value)}
           />
-          <select className="input" value={employeeFilter} onChange={(e) => setEmployeeFilter(e.target.value)}>
-            <option value="all">Todos funcionarios</option>
-            {uniqueEmployees.map((employee) => (
-              <option key={employee} value={employee}>
-                {employee}
-              </option>
-            ))}
-          </select>
-          <select className="input" value={serviceFilter} onChange={(e) => setServiceFilter(e.target.value)}>
-            <option value="all">Todos servicos</option>
-            {uniqueServices.map((service) => (
-              <option key={service} value={service}>
-                {service}
-              </option>
-            ))}
-          </select>
-          <select className="input xl:col-span-2" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
-            <option value="desc">Data (mais recente)</option>
-            <option value="asc">Data (mais antiga)</option>
-            <option value="valor_desc">Valor (maior)</option>
-            <option value="valor_asc">Valor (menor)</option>
-            <option value="comissao_desc">Comissao (maior)</option>
-            <option value="comissao_asc">Comissao (menor)</option>
-          </select>
+          <label className="relative">
+            <UserRound size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <select className="input appearance-none !pl-11 !pr-10" value={employeeFilter} onChange={(e) => setEmployeeFilter(e.target.value)}>
+              <option value="all">Todos funcionarios</option>
+              {uniqueEmployees.map((employee) => (
+                <option key={employee} value={employee}>
+                  {employee}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="relative">
+            <Scissors size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <select className="input appearance-none !pl-11 !pr-10" value={serviceFilter} onChange={(e) => setServiceFilter(e.target.value)}>
+              <option value="all">Todos servicos</option>
+              {uniqueServices.map((service) => (
+                <option key={service} value={service}>
+                  {service}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="relative xl:col-span-2">
+            <SlidersHorizontal size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <select className="input appearance-none !pl-11 !pr-10" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+              <option value="desc">Data (mais recente)</option>
+              <option value="asc">Data (mais antiga)</option>
+              <option value="valor_desc">Valor (maior)</option>
+              <option value="valor_asc">Valor (menor)</option>
+              <option value="comissao_desc">Comissao (maior)</option>
+              <option value="comissao_asc">Comissao (menor)</option>
+            </select>
+          </label>
           <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300">
             <Filter size={13} />
             Filtros ativos
@@ -295,7 +307,7 @@ export function AdminAttendancesPage() {
                 key: 'usuario',
                 label: 'Funcionario',
                 render: (row) => (
-                  <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center gap-2 font-medium text-slate-100">
                       <UserRound size={13} className="text-slate-500" />
                       {row.usuario?.nome || '-'}
