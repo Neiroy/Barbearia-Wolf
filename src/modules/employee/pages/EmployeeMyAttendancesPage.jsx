@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
-import { CalendarRange, ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign, Clock3, Filter, Scissors, Search, Wallet } from 'lucide-react'
+import { CalendarRange, ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign, Clock3, Filter, Scissors, Search, SlidersHorizontal, Wallet } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { DataTable } from '../../../components/ui/DataTable'
 import { PageHeader } from '../../../components/ui/PageHeader'
@@ -176,7 +176,7 @@ export function EmployeeMyAttendancesPage() {
             <label className="relative xl:col-span-2">
               <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
-                className="input pl-11"
+                className="input !pl-11"
                 placeholder="Buscar cliente"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -187,7 +187,7 @@ export function EmployeeMyAttendancesPage() {
               <Filter size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <select
-                className="input appearance-none pl-11 pr-10"
+                className="input appearance-none !pl-11 !pr-10"
                 value={period}
                 onChange={(event) => setPeriod(event.target.value)}
               >
@@ -202,7 +202,7 @@ export function EmployeeMyAttendancesPage() {
               <Scissors size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <select
-                className="input appearance-none pl-11 pr-10"
+                className="input appearance-none !pl-11 !pr-10"
                 value={serviceFilter}
                 onChange={(event) => setServiceFilter(event.target.value)}
               >
@@ -215,14 +215,18 @@ export function EmployeeMyAttendancesPage() {
               </select>
             </label>
 
-            <select
-              className="input"
-              value={sortOrder}
-              onChange={(event) => setSortOrder(event.target.value)}
-            >
-              <option value="desc">Mais recentes</option>
-              <option value="asc">Mais antigos</option>
-            </select>
+            <label className="relative">
+              <SlidersHorizontal size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <select
+                className="input appearance-none !pl-11 !pr-10"
+                value={sortOrder}
+                onChange={(event) => setSortOrder(event.target.value)}
+              >
+                <option value="desc">Mais recentes</option>
+                <option value="asc">Mais antigos</option>
+              </select>
+            </label>
           </div>
         </Toolbar>
 
