@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { captureAppError } from '../lib/observability'
 
 export class AppErrorBoundary extends Component {
   constructor(props) {
@@ -14,7 +15,7 @@ export class AppErrorBoundary extends Component {
   }
 
   componentDidCatch(error) {
-    console.error('AppErrorBoundary:', error)
+    captureAppError(error, { source: 'AppErrorBoundary' })
   }
 
   render() {

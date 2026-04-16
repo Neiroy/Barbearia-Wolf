@@ -12,6 +12,8 @@ import { SectionCard } from '../../../components/ui/SectionCard'
 import { Toolbar } from '../../../components/ui/Toolbar'
 import { calculateMonthlyFinancial, listAttendances, listExpenses, saveExpense } from '../../../services/supabase'
 import { formatCurrency, formatCurrencyInput, formatDate, parseCurrencyInput } from '../../../utils/formatters'
+import { useToast } from '../../../context/ToastContext'
+import { captureAppError } from '../../../lib/observability'
 
 const initialExpense = {
   descricao: '',
@@ -21,6 +23,7 @@ const initialExpense = {
 }
 
 export function AdminFinancePage() {
+  const { showToast } = useToast()
   const { profile } = useAuth()
   const [month, setMonth] = useState(dayjs().format('YYYY-MM-01'))
   const [attendances, setAttendances] = useState([])
@@ -33,21 +36,31 @@ export function AdminFinancePage() {
   const [pageSize, setPageSize] = useState(10)
 
   async function reload() {
-    const startDate = dayjs(month).startOf('month').format('YYYY-MM-DD')
-    const endDate = dayjs(month).endOf('month').format('YYYY-MM-DD')
-    setAttendances(await listAttendances({ startDate, endDate }))
-    setExpenses(await listExpenses(month))
-  }
-
-  useEffect(() => {
-    async function loadMonthlyData() {
+    try {
       const startDate = dayjs(month).startOf('month').format('YYYY-MM-DD')
       const endDate = dayjs(month).endOf('month').format('YYYY-MM-DD')
       setAttendances(await listAttendances({ startDate, endDate }))
       setExpenses(await listExpenses(month))
+    } catch (error) {
+      captureAppError(error, { source: 'AdminFinancePage.reload', month })
+      showToast({ tone: 'error', title: 'Falha ao recarregar financeiro', description: error.message || 'Tente novamente.' })
+    }
+  }
+
+  useEffect(() => {
+    async function loadMonthlyData() {
+      try {
+        const startDate = dayjs(month).startOf('month').format('YYYY-MM-DD')
+        const endDate = dayjs(month).endOf('month').format('YYYY-MM-DD')
+        setAttendances(await listAttendances({ startDate, endDate }))
+        setExpenses(await listExpenses(month))
+      } catch (error) {
+        captureAppError(error, { source: 'AdminFinancePage.loadMonthlyData', month })
+        showToast({ tone: 'error', title: 'Falha ao carregar financeiro', description: error.message || 'Tente novamente.' })
+      }
     }
     loadMonthlyData()
-  }, [month])
+  }, [month, showToast])
 
   const totals = useMemo(() => calculateMonthlyFinancial(attendances, expenses), [attendances, expenses])
   const expensesByCategory = useMemo(
@@ -120,13 +133,19 @@ export function AdminFinancePage() {
           className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"
           onSubmit={async (event) => {
             event.preventDefault()
-            await saveExpense({
-              ...newExpense,
-              valor: parseCurrencyInput(newExpense.valor),
-              criado_por: profile.id,
-            })
-            setNewExpense(initialExpense)
-            reload()
+            try {
+              await saveExpense({
+                ...newExpense,
+                valor: parseCurrencyInput(newExpense.valor),
+                criado_por: profile.id,
+              })
+              setNewExpense(initialExpense)
+              showToast({ tone: 'success', title: 'Gasto salvo com sucesso' })
+              reload()
+            } catch (error) {
+              captureAppError(error, { source: 'AdminFinancePage.saveExpense', month })
+              showToast({ tone: 'error', title: 'Falha ao salvar gasto', description: error.message || 'Tente novamente.' })
+            }
           }}
         >
           <FormField label="Descricao">

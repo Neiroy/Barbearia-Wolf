@@ -10,8 +10,11 @@ import { SummaryGrid } from '../../../components/ui/SummaryGrid'
 import { Toolbar } from '../../../components/ui/Toolbar'
 import { listEmployees, saveEmployee } from '../../../services/supabase'
 import { formatPercentInput, parsePercentInput } from '../../../utils/formatters'
+import { useToast } from '../../../context/ToastContext'
+import { captureAppError } from '../../../lib/observability'
 
 export function AdminStaffPage() {
+  const { showToast } = useToast()
   const [rows, setRows] = useState([])
   const [form, setForm] = useState({
     id: '',
@@ -108,14 +111,21 @@ export function AdminStaffPage() {
             setFeedback('')
             setError('')
             try {
+              const parsedPercentual = form.recebe_comissao ? parsePercentInput(form.percentual_comissao) : 0
+              if (!form.recebe_comissao && parsedPercentual > 0) {
+                throw new Error('Perfil sem comissão deve ter percentual igual a 0.')
+              }
               await saveEmployee({
                 ...form,
-                percentual_comissao: form.recebe_comissao ? parsePercentInput(form.percentual_comissao) : 0,
+                percentual_comissao: parsedPercentual,
               })
               await reload()
               setFeedback('Comissao atualizada com sucesso.')
+              showToast({ tone: 'success', title: 'Regra financeira atualizada' })
             } catch (submitError) {
+              captureAppError(submitError, { source: 'AdminStaffPage.submit', userId: form.id || null })
               setError(submitError.message || 'Falha ao atualizar comissao.')
+              showToast({ tone: 'error', title: 'Falha ao atualizar regra financeira', description: submitError.message || 'Tente novamente.' })
             } finally {
               setSaving(false)
             }

@@ -10,10 +10,13 @@ import { SummaryGrid } from '../../../components/ui/SummaryGrid'
 import { Toolbar } from '../../../components/ui/Toolbar'
 import { deleteService, listServices, saveService } from '../../../services/supabase'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '../../../utils/formatters'
+import { useToast } from '../../../context/ToastContext'
+import { captureAppError } from '../../../lib/observability'
 
 const initialForm = { id: '', nome: '', valor: '', valor_editavel: false, ordem: 1, ativo: true }
 
 export function AdminServicesPage() {
+  const { showToast } = useToast()
   const [rows, setRows] = useState([])
   const [form, setForm] = useState(initialForm)
   const [serviceToDelete, setServiceToDelete] = useState(null)
@@ -115,9 +118,12 @@ export function AdminServicesPage() {
               await saveService({ ...form, valor: parseCurrencyInput(form.valor) })
               setForm(initialForm)
               setFeedback('Servico salvo com sucesso no catalogo.')
+              showToast({ tone: 'success', title: 'Serviço salvo', description: 'Cadastro atualizado no catálogo.' })
               await reload()
             } catch (submitError) {
+              captureAppError(submitError, { source: 'AdminServicesPage.submit', serviceId: form.id || null })
               setError(submitError.message || 'Falha ao salvar servico.')
+              showToast({ tone: 'error', title: 'Falha ao salvar serviço', description: submitError.message || 'Tente novamente.' })
             } finally {
               setSaving(false)
             }
@@ -285,10 +291,16 @@ export function AdminServicesPage() {
         description={`Deseja remover ${serviceToDelete?.nome || 'este servico'}?`}
         onCancel={() => setServiceToDelete(null)}
         onConfirm={async () => {
-          await deleteService(serviceToDelete.id)
-          setServiceToDelete(null)
-          setFeedback('Servico excluido com sucesso.')
-          reload()
+          try {
+            await deleteService(serviceToDelete.id)
+            setServiceToDelete(null)
+            setFeedback('Servico excluido com sucesso.')
+            showToast({ tone: 'success', title: 'Serviço excluído' })
+            reload()
+          } catch (error) {
+            captureAppError(error, { source: 'AdminServicesPage.delete', serviceId: serviceToDelete?.id || null })
+            showToast({ tone: 'error', title: 'Falha ao excluir serviço', description: error.message || 'Tente novamente.' })
+          }
         }}
       />
     </section>

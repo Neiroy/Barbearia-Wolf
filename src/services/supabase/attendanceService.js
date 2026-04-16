@@ -1,5 +1,17 @@
 import { supabase } from '../../lib/supabase'
 
+export function mapWeeklySummaryToClosurePayload(summary, startDate, endDate, statusByUserId = {}) {
+  return (summary || []).map((item) => ({
+    usuario_id: item.usuario_id,
+    semana_inicio: startDate,
+    semana_fim: endDate,
+    total_servicos: Number(item.total_atendimentos || 0),
+    total_vendido: Number(item.total_vendido || 0),
+    total_comissao: Number(item.total_comissao || 0),
+    status_pagamento: statusByUserId[item.usuario_id] || 'aberto',
+  }))
+}
+
 export async function listAttendances(filters = {}) {
   let query = supabase
     .from('atendimentos')
@@ -74,15 +86,7 @@ export async function syncWeeklyClosures(startDate, endDate) {
     return acc
   }, {})
 
-  const payload = summary.map((item) => ({
-    usuario_id: item.usuario_id,
-    semana_inicio: startDate,
-    semana_fim: endDate,
-    total_servicos: Number(item.total_atendimentos || 0),
-    total_vendido: Number(item.total_vendido || 0),
-    total_comissao: Number(item.total_comissao || 0),
-    status_pagamento: statusByUserId[item.usuario_id] || 'aberto',
-  }))
+  const payload = mapWeeklySummaryToClosurePayload(summary, startDate, endDate, statusByUserId)
 
   const { data, error } = await supabase
     .from('fechamentos_semanais')

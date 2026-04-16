@@ -9,6 +9,7 @@ import { PageHeader } from '../../../components/ui/PageHeader'
 import { SectionCard } from '../../../components/ui/SectionCard'
 import { listServices, saveAttendanceBatch } from '../../../services/supabase'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '../../../utils/formatters'
+import { captureAppError } from '../../../lib/observability'
 
 const initialForm = {
   cliente_nome: '',
@@ -116,6 +117,11 @@ export function EmployeeNewAttendancePage() {
         })
       }
     } catch (submitError) {
+      captureAppError(submitError, {
+        source: 'EmployeeNewAttendancePage.handleSubmit',
+        userId: profile?.id,
+        selectedServices: selectedServices.length,
+      })
       setError(submitError.message || 'Falha ao salvar atendimento.')
     } finally {
       setSaving(false)

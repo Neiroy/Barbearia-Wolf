@@ -169,10 +169,21 @@ export function AdminAttendancesPage() {
   }
 
   function exportCsv() {
-    const header = ['Data/Hora', 'Funcionario', 'Cliente', 'Servicos', 'Valor Total', 'Comissao Total']
+    const header = [
+      'Data/Hora',
+      'Funcionario',
+      'Tipo remuneracao',
+      'Participa fechamento comissao',
+      'Cliente',
+      'Servicos',
+      'Valor Total',
+      'Comissao Total',
+    ]
     const lines = filteredRows.map((row) => [
       formatDateTime(row.data_hora),
       row.usuario?.nome || '',
+      row.usuario?.tipo_remuneracao || 'nao_informado',
+      row.usuario?.participa_fechamento_comissao ? 'sim' : 'nao',
       row.cliente_nome || '',
       row.servicos.map((service) => service.nome).join(' + '),
       Number(row.valor_servico || 0).toFixed(2),

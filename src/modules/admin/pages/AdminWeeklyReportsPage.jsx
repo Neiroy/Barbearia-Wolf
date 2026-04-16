@@ -14,6 +14,7 @@ import { groupAttendancesByCombo, listAttendances, listWeeklyClosures, updateWee
 import { formatCurrency } from '../../../utils/formatters'
 import { Link } from 'react-router-dom'
 import { useToast } from '../../../context/ToastContext'
+import { captureAppError } from '../../../lib/observability'
 
 export function AdminWeeklyReportsPage() {
   const [rows, setRows] = useState([])
@@ -46,7 +47,12 @@ export function AdminWeeklyReportsPage() {
         .sort((a, b) => Number(b.valor_servico) - Number(a.valor_servico))
       setRows(closureRows)
       setOwnerProductionRows(ownerGroups)
-    } catch {
+    } catch (error) {
+      captureAppError(error, {
+        source: 'AdminWeeklyReportsPage.loadWeeklyClosures',
+        weekStart,
+        weekEnd,
+      })
       showToast({
         tone: 'error',
         title: 'Falha ao carregar fechamento',
@@ -65,6 +71,8 @@ export function AdminWeeklyReportsPage() {
     return rows.map((row) => ({
       id: row.id,
       funcionario: row.usuario?.nome || 'Sem nome',
+      tipoRemuneracao: row.usuario?.tipo_remuneracao || 'nao_informado',
+      participaFechamentoComissao: Boolean(row.usuario?.participa_fechamento_comissao),
       totalServicos: Number(row.total_servicos || 0),
       totalVendido: Number(row.total_vendido || 0),
       totalComissao: Number(row.total_comissao || 0),
@@ -128,9 +136,19 @@ export function AdminWeeklyReportsPage() {
   }
 
   function exportCsv() {
-    const header = ['Funcionario', 'Atendimentos', 'Total vendido', 'Comissao', 'Status']
+    const header = [
+      'Funcionario',
+      'Tipo remuneracao',
+      'Participa fechamento comissao',
+      'Atendimentos',
+      'Total vendido',
+      'Comissao',
+      'Status',
+    ]
     const lines = filteredRows.map((row) => [
       row.funcionario,
+      row.tipoRemuneracao,
+      row.participaFechamentoComissao ? 'sim' : 'nao',
       row.totalServicos,
       Number(row.totalVendido || 0).toFixed(2),
       Number(row.totalComissao || 0).toFixed(2),
@@ -156,7 +174,11 @@ export function AdminWeeklyReportsPage() {
         title: 'Pagamento atualizado',
         description: `Fechamento de ${row.funcionario} marcado como pago.`,
       })
-    } catch {
+    } catch (error) {
+      captureAppError(error, {
+        source: 'AdminWeeklyReportsPage.markEmployeeAsPaid',
+        closureId: row?.id,
+      })
       showToast({
         tone: 'error',
         title: 'Falha ao atualizar pagamento',
@@ -188,7 +210,11 @@ export function AdminWeeklyReportsPage() {
         title: 'Semana marcada como paga',
         description: 'Pagamento atualizado para os funcionarios pendentes filtrados.',
       })
-    } catch {
+    } catch (error) {
+      captureAppError(error, {
+        source: 'AdminWeeklyReportsPage.markVisibleRowsAsPaid',
+        pendingRows: pendingRows.length,
+      })
       showToast({
         tone: 'error',
         title: 'Falha ao marcar semana como paga',
