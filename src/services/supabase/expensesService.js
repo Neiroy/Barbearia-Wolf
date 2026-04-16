@@ -86,14 +86,22 @@ export async function saveExpense(payload) {
     throw new Error('Este mês já está fechado. Reabra o mês para editar gastos.')
   }
 
+  const cleanId = typeof payload.id === 'string' ? payload.id.trim() : payload.id
+  const cleanTemplateId =
+    typeof payload.origem_recorrente_id === 'string'
+      ? payload.origem_recorrente_id.trim() || null
+      : payload.origem_recorrente_id || null
+
   const normalizedPayload = {
     ...payload,
+    id: cleanId || undefined,
+    origem_recorrente_id: cleanTemplateId,
     recorrente_mensal: payload.tipo === 'fixo' ? Boolean(payload.recorrente_mensal) : false,
     competencia_mes: monthStart,
   }
 
-  const query = payload.id
-    ? supabase.from('gastos').update(normalizedPayload).eq('id', payload.id)
+  const query = cleanId
+    ? supabase.from('gastos').update(normalizedPayload).eq('id', cleanId)
     : supabase.from('gastos').insert(normalizedPayload)
   const { error } = await query
   if (error) throw error
