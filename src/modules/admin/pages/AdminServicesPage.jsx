@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Pencil, PlusCircle, Search, SlidersHorizontal, Trash2 } from 'lucide-react'
+import { ChevronDown, Pencil, PlusCircle, Scissors, Search, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog'
 import { FormField } from '../../../components/ui/FormFields'
 import { EmptyState, LoadingState } from '../../../components/ui/FeedbackStates'
@@ -185,30 +185,38 @@ export function AdminServicesPage() {
             <label className="relative xl:col-span-2">
               <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
-                className="input pl-9"
+                className="input !pl-11"
                 placeholder="Buscar por nome do servico"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
             </label>
 
-            <select
-              className="input"
-              value={editableFilter}
-              onChange={(event) => setEditableFilter(event.target.value)}
-            >
-              <option value="all">Todos os tipos</option>
-              <option value="editavel">Somente editaveis</option>
-              <option value="fixo">Somente valor fixo</option>
-            </select>
+            <label className="relative">
+              <Scissors size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <select
+                className="input appearance-none !pl-11 !pr-10"
+                value={editableFilter}
+                onChange={(event) => setEditableFilter(event.target.value)}
+              >
+                <option value="all">Todos os tipos</option>
+                <option value="editavel">Somente editaveis</option>
+                <option value="fixo">Somente valor fixo</option>
+              </select>
+            </label>
 
-            <select className="input" value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-              <option value="ordem">Ordenar por ordem</option>
-              <option value="nome_asc">Nome (A-Z)</option>
-              <option value="nome_desc">Nome (Z-A)</option>
-              <option value="valor_desc">Maior preco</option>
-              <option value="valor_asc">Menor preco</option>
-            </select>
+            <label className="relative">
+              <SlidersHorizontal size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <select className="input appearance-none !pl-11 !pr-10" value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+                <option value="ordem">Ordenar por ordem</option>
+                <option value="nome_asc">Nome (A-Z)</option>
+                <option value="nome_desc">Nome (Z-A)</option>
+                <option value="valor_desc">Maior preco</option>
+                <option value="valor_asc">Menor preco</option>
+              </select>
+            </label>
           </div>
         </Toolbar>
 

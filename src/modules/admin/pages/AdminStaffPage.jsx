@@ -201,7 +201,7 @@ export function AdminStaffPage() {
           <label className="relative w-full md:max-w-md">
             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
-              className="input pl-9"
+              className="input !pl-11"
               placeholder="Buscar funcionario por nome"
               value={search}
               onChange={(event) => setSearch(event.target.value)}

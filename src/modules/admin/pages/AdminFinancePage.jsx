@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
-import { ChevronLeft, ChevronRight, Filter, Search } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, Filter, Search, SlidersHorizontal } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
 import { EXPENSE_TYPES } from '../../../constants/app'
 import { EmptyState } from '../../../components/ui/FeedbackStates'
@@ -193,7 +193,7 @@ export function AdminFinancePage() {
               <label className="relative xl:col-span-2">
                 <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
-                  className="input pl-9"
+                  className="input !pl-11"
                   placeholder="Buscar por descricao"
                   value={search}
                   onChange={(event) => {
@@ -202,34 +202,42 @@ export function AdminFinancePage() {
                   }}
                 />
               </label>
-              <select
-                className="input"
-                value={categoryFilter}
-                onChange={(event) => {
-                  setCurrentPage(1)
-                  setCategoryFilter(event.target.value)
-                }}
-              >
-                <option value="all">Todas categorias</option>
-                {EXPENSE_TYPES.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="input"
-                value={sortOrder}
-                onChange={(event) => {
-                  setCurrentPage(1)
-                  setSortOrder(event.target.value)
-                }}
-              >
-                <option value="data_desc">Data (mais recente)</option>
-                <option value="data_asc">Data (mais antiga)</option>
-                <option value="valor_desc">Maior valor</option>
-                <option value="valor_asc">Menor valor</option>
-              </select>
+              <label className="relative">
+                <Filter size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <select
+                  className="input appearance-none !pl-11 !pr-10"
+                  value={categoryFilter}
+                  onChange={(event) => {
+                    setCurrentPage(1)
+                    setCategoryFilter(event.target.value)
+                  }}
+                >
+                  <option value="all">Todas categorias</option>
+                  {EXPENSE_TYPES.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="relative">
+                <SlidersHorizontal size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <select
+                  className="input appearance-none !pl-11 !pr-10"
+                  value={sortOrder}
+                  onChange={(event) => {
+                    setCurrentPage(1)
+                    setSortOrder(event.target.value)
+                  }}
+                >
+                  <option value="data_desc">Data (mais recente)</option>
+                  <option value="data_asc">Data (mais antiga)</option>
+                  <option value="valor_desc">Maior valor</option>
+                  <option value="valor_asc">Menor valor</option>
+                </select>
+              </label>
               <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300">
                 <Filter size={13} />
                 Filtros ativos
