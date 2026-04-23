@@ -11,6 +11,7 @@ import { PerformanceKpiCard } from '../components/PerformanceKpiCard'
 import { QuickActionLinks } from '../components/QuickActionLinks'
 import { calculateWeeklySummary, groupAttendancesByCombo, listAttendances } from '../../../services/supabase'
 import { formatCurrency, formatDateTime } from '../../../utils/formatters'
+import { getBarberWeekRange } from '../../../utils/dateRanges'
 
 export function EmployeeDashboardPage() {
   const { profile } = useAuth()
@@ -24,8 +25,13 @@ export function EmployeeDashboardPage() {
   }, [profile?.id])
 
   const weekly = useMemo(() => {
-    const start = dayjs().startOf('week')
-    return calculateWeeklySummary(rows.filter((row) => dayjs(row.data_hora).isAfter(start)))
+    const weekRange = getBarberWeekRange()
+    return calculateWeeklySummary(
+      rows.filter((row) => {
+        const date = dayjs(row.data_hora)
+        return (date.isAfter(weekRange.start) || date.isSame(weekRange.start)) && (date.isBefore(weekRange.end) || date.isSame(weekRange.end))
+      }),
+    )
   }, [rows])
 
   const monthRows = useMemo(
@@ -47,8 +53,11 @@ export function EmployeeDashboardPage() {
   }, [groupedMonthRows])
 
   const weekByDayData = useMemo(() => {
-    const start = dayjs().startOf('week')
-    const weekRows = rows.filter((row) => dayjs(row.data_hora).isAfter(start))
+    const weekRange = getBarberWeekRange()
+    const weekRows = rows.filter((row) => {
+      const date = dayjs(row.data_hora)
+      return (date.isAfter(weekRange.start) || date.isSame(weekRange.start)) && (date.isBefore(weekRange.end) || date.isSame(weekRange.end))
+    })
     const groupedWeekRows = groupAttendancesByCombo(weekRows)
     const grouped = groupedWeekRows.reduce((acc, row) => {
       const key = dayjs(row.data_hora).format('ddd')

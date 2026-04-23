@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import { ChevronDown, ChevronLeft, ChevronRight, Filter, Search, SlidersHorizontal } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
@@ -13,8 +13,10 @@ import { Toolbar } from '../../../components/ui/Toolbar'
 import {
   calculateMonthlyFinancial,
   closeMonthSnapshot,
+  getPaidCommissionsByMonth,
   getMonthlyClosure,
   listAttendances,
+  listMonthlyClosuresHistory,
   listExpenses,
   reopenMonthSnapshot,
   saveExpense,
@@ -22,6 +24,7 @@ import {
 import { formatCurrency, formatCurrencyInput, formatDate, parseCurrencyInput } from '../../../utils/formatters'
 import { useToast } from '../../../context/ToastContext'
 import { captureAppError } from '../../../lib/observability'
+import { supabase } from '../../../lib/supabase'
 
 const initialExpense = {
   id: '',
@@ -42,52 +45,85 @@ export function AdminFinancePage() {
   const [newExpense, setNewExpense] = useState(initialExpense)
   const [editScope, setEditScope] = useState('mes')
   const [monthClosure, setMonthClosure] = useState(null)
+  const [monthlyHistoryRows, setMonthlyHistoryRows] = useState([])
+  const [paidCommissions, setPaidCommissions] = useState(0)
+  const [lastSyncAt, setLastSyncAt] = useState(null)
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [sortOrder, setSortOrder] = useState('data_desc')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
 
-  async function reload() {
+  const reload = useCallback(async () => {
     try {
       const startDate = dayjs(month).startOf('month').format('YYYY-MM-DD')
       const endDate = dayjs(month).endOf('month').format('YYYY-MM-DD')
-      const [attendanceRows, expenseRows, closureRow] = await Promise.all([
+      const [attendanceRows, expenseRows, closureRow, historyRows, paidCommissionsTotal] = await Promise.all([
         listAttendances({ startDate, endDate }),
         listExpenses(month),
         getMonthlyClosure(month),
+        listMonthlyClosuresHistory(36),
+        getPaidCommissionsByMonth(month),
       ])
       setAttendances(attendanceRows)
       setExpenses(expenseRows)
       setMonthClosure(closureRow)
+      setMonthlyHistoryRows(historyRows)
+      setPaidCommissions(paidCommissionsTotal)
+      setLastSyncAt(new Date())
     } catch (error) {
       captureAppError(error, { source: 'AdminFinancePage.reload', month })
       showToast({ tone: 'error', title: 'Falha ao recarregar financeiro', description: error.message || 'Tente novamente.' })
     }
-  }
-
-  useEffect(() => {
-    async function loadMonthlyData() {
-      try {
-        const startDate = dayjs(month).startOf('month').format('YYYY-MM-DD')
-        const endDate = dayjs(month).endOf('month').format('YYYY-MM-DD')
-        const [attendanceRows, expenseRows, closureRow] = await Promise.all([
-          listAttendances({ startDate, endDate }),
-          listExpenses(month),
-          getMonthlyClosure(month),
-        ])
-        setAttendances(attendanceRows)
-        setExpenses(expenseRows)
-        setMonthClosure(closureRow)
-      } catch (error) {
-        captureAppError(error, { source: 'AdminFinancePage.loadMonthlyData', month })
-        showToast({ tone: 'error', title: 'Falha ao carregar financeiro', description: error.message || 'Tente novamente.' })
-      }
-    }
-    loadMonthlyData()
   }, [month, showToast])
 
+  useEffect(() => {
+    reload()
+  }, [reload])
+
+  useEffect(() => {
+    let refreshTimeoutId = null
+    const scheduleReload = () => {
+      if (refreshTimeoutId) window.clearTimeout(refreshTimeoutId)
+      refreshTimeoutId = window.setTimeout(() => reload(), 300)
+    }
+
+    const channel = supabase
+      .channel(`admin-finance-live-${month}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'fechamentos_semanais' }, scheduleReload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'fechamentos_mensais' }, scheduleReload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'atendimentos' }, scheduleReload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gastos' }, scheduleReload)
+      .subscribe()
+
+    return () => {
+      if (refreshTimeoutId) window.clearTimeout(refreshTimeoutId)
+      supabase.removeChannel(channel)
+    }
+  }, [month, reload])
+
   const totals = useMemo(() => calculateMonthlyFinancial(attendances, expenses), [attendances, expenses])
+  const displayedTotals = totals
+  const collaboratorRows = useMemo(() => {
+    const grouped = attendances.reduce((acc, row) => {
+      const key = row.usuario_id || 'sem-usuario'
+      if (!acc[key]) {
+        acc[key] = {
+          id: key,
+          funcionario: row.usuario?.nome || 'Sem nome',
+          tipoRemuneracao: row.usuario?.tipo_remuneracao || 'nao_informado',
+          recebeComissao: Boolean(row.usuario?.recebe_comissao),
+          totalVendido: 0,
+          totalComissao: 0,
+        }
+      }
+      acc[key].totalVendido += Number(row.valor_servico || 0)
+      acc[key].totalComissao += Number(row.valor_comissao || 0)
+      return acc
+    }, {})
+
+    return Object.values(grouped).sort((a, b) => b.totalVendido - a.totalVendido)
+  }, [attendances])
   const expensesByCategory = useMemo(
     () =>
       expenses.reduce((acc, item) => {
@@ -130,6 +166,9 @@ export function AdminFinancePage() {
         description="Entradas, gastos, comissoes e resultado do mes."
         actions={
           <div className="flex w-full flex-wrap items-center justify-end gap-2 lg:w-auto">
+            <span className="inline-flex items-center rounded-md border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-emerald-300">
+              {lastSyncAt ? `Sincronizado ${dayjs(lastSyncAt).format('HH:mm:ss')}` : 'Sincronizando...'}
+            </span>
             <input
               type="month"
               className="input w-full sm:w-44"
@@ -181,14 +220,75 @@ export function AdminFinancePage() {
       />
 
       <SummaryGrid columns={7}>
-        <CurrencyCard label="Faturamento total" value={formatCurrency(totals.totalEntradas)} />
-        <CurrencyCard label="Faturamento funcionarios" value={formatCurrency(totals.faturamentoFuncionarios)} />
-        <CurrencyCard label="Faturamento dono/admin" value={formatCurrency(totals.faturamentoAdminDono)} />
-        <CurrencyCard label="Comissoes a pagar" value={formatCurrency(totals.totalComissoes)} />
-        <CurrencyCard label="Gastos" value={formatCurrency(totals.totalGastos)} />
-        <CurrencyCard label="Lucro bruto" value={formatCurrency(totals.lucroBruto)} />
-        <CurrencyCard label="Lucro liquido" value={formatCurrency(totals.lucroLiquido)} />
+        <CurrencyCard label="Faturamento total" value={formatCurrency(displayedTotals.totalEntradas)} />
+        <CurrencyCard label="Faturamento funcionarios" value={formatCurrency(displayedTotals.faturamentoFuncionarios)} />
+        <CurrencyCard label="Faturamento dono/admin" value={formatCurrency(displayedTotals.faturamentoAdminDono)} />
+        <CurrencyCard
+          label="Comissoes pagas"
+          value={formatCurrency(paidCommissions)}
+          hint="Atualiza automaticamente apos marcar semana como paga"
+        />
+        <CurrencyCard label="Gastos" value={formatCurrency(displayedTotals.totalGastos)} />
+        <CurrencyCard label="Lucro bruto" value={formatCurrency(displayedTotals.lucroBruto)} />
+        <CurrencyCard label="Lucro liquido" value={formatCurrency(displayedTotals.lucroLiquido)} />
       </SummaryGrid>
+
+      <SectionCard
+        title="Historico mensal congelado"
+        subtitle="Meses fechados com snapshot financeiro salvo no fechamento."
+      >
+        <DataTable
+          columns={[
+            {
+              key: 'referencia_mes',
+              label: 'Mes/ano',
+              render: (row) => dayjs(row.referencia_mes).format('MM/YYYY'),
+            },
+            { key: 'total_entradas', label: 'Faturamento', render: (row) => formatCurrency(row.total_entradas) },
+            { key: 'total_comissoes', label: 'Comissoes', render: (row) => formatCurrency(row.total_comissoes) },
+            { key: 'total_gastos', label: 'Gastos', render: (row) => formatCurrency(row.total_gastos) },
+            { key: 'lucro_bruto', label: 'Lucro bruto', render: (row) => formatCurrency(row.lucro_bruto) },
+            { key: 'lucro_liquido', label: 'Lucro liquido', render: (row) => formatCurrency(row.lucro_liquido) },
+            {
+              key: 'fechado_em',
+              label: 'Fechado em',
+              render: (row) => (row.fechado_em ? dayjs(row.fechado_em).format('DD/MM/YYYY') : '-'),
+            },
+            { key: 'status_fechamento', label: 'Status' },
+          ]}
+          rows={monthlyHistoryRows}
+          empty="Nenhum fechamento mensal historico encontrado."
+        />
+      </SectionCard>
+
+      <SectionCard
+        title="Resumo por colaborador no mes"
+        subtitle="Conferencia de faturamento do dono/admin, funcionario e comissoes pagaveis."
+      >
+        <DataTable
+          columns={[
+            { key: 'funcionario', label: 'Colaborador' },
+            {
+              key: 'tipoRemuneracao',
+              label: 'Perfil',
+              render: (row) =>
+                row.recebeComissao ? 'Funcionario comissionado' : 'Dono/Admin (sem comissao)',
+            },
+            {
+              key: 'totalVendido',
+              label: 'Total vendido',
+              render: (row) => formatCurrency(row.totalVendido),
+            },
+            {
+              key: 'totalComissao',
+              label: 'Comissao do colaborador',
+              render: (row) => formatCurrency(row.recebeComissao ? row.totalComissao : 0),
+            },
+          ]}
+          rows={collaboratorRows}
+          empty="Sem atendimentos lancados para o mes selecionado."
+        />
+      </SectionCard>
 
       <SectionCard title="Lancamento de gasto">
         <form

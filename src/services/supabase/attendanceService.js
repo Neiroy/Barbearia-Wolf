@@ -1,4 +1,9 @@
 import { supabase } from '../../lib/supabase'
+import dayjs from 'dayjs'
+
+function normalizePaymentStatus(status) {
+  return status === 'pago' ? 'pago' : 'aberto'
+}
 
 export function mapWeeklySummaryToClosurePayload(summary, startDate, endDate, statusByUserId = {}) {
   return (summary || []).map((item) => ({
@@ -8,8 +13,22 @@ export function mapWeeklySummaryToClosurePayload(summary, startDate, endDate, st
     total_servicos: Number(item.total_atendimentos || 0),
     total_vendido: Number(item.total_vendido || 0),
     total_comissao: Number(item.total_comissao || 0),
-    status_pagamento: statusByUserId[item.usuario_id] || 'aberto',
+    status_pagamento: normalizePaymentStatus(statusByUserId[item.usuario_id]),
   }))
+}
+
+function mapWeeklyRowSnapshot(row) {
+  return {
+    usuario_id: row.usuario_id,
+    semana_inicio: row.semana_inicio,
+    semana_fim: row.semana_fim,
+    total_servicos: Number(row.total_servicos || 0),
+    total_vendido: Number(row.total_vendido || 0),
+    total_comissao: Number(row.total_comissao || 0),
+    status_pagamento: normalizePaymentStatus(row.status_pagamento),
+    pago_em: row.pago_em || null,
+    fechado_por: row.fechado_por || null,
+  }
 }
 
 export async function listAttendances(filters = {}) {
@@ -69,24 +88,53 @@ export async function getWeeklySummaryByEmployee(startDate, endDate) {
 
 export async function syncWeeklyClosures(startDate, endDate) {
   const summary = await getWeeklySummaryByEmployee(startDate, endDate)
-  if (!summary.length) return []
 
-  const usuarioIds = summary.map((item) => item.usuario_id)
-  const { data: currentRows, error: currentError } = await supabase
+  const usuarioIds = summary.map((item) => item.usuario_id).filter(Boolean)
+  let currentRows = []
+  let currentError = null
+  const userIdsFilter = usuarioIds.length ? usuarioIds : ['00000000-0000-0000-0000-000000000000']
+  const detailedCurrentQuery = supabase
     .from('fechamentos_semanais')
-    .select('usuario_id, status_pagamento')
+    .select(
+      'usuario_id, semana_inicio, semana_fim, total_servicos, total_vendido, total_comissao, status_pagamento, pago_em, fechado_por',
+    )
     .eq('semana_inicio', startDate)
     .eq('semana_fim', endDate)
-    .in('usuario_id', usuarioIds)
+    .in('usuario_id', userIdsFilter)
+  const detailedCurrentResult = await detailedCurrentQuery
+  currentRows = detailedCurrentResult.data || []
+  currentError = detailedCurrentResult.error
+
+  if (currentError) {
+    const fallbackCurrentResult = await supabase
+      .from('fechamentos_semanais')
+      .select('usuario_id, semana_inicio, semana_fim, total_servicos, total_vendido, total_comissao, status_pagamento')
+      .eq('semana_inicio', startDate)
+      .eq('semana_fim', endDate)
+      .in('usuario_id', userIdsFilter)
+    currentRows = fallbackCurrentResult.data || []
+    currentError = fallbackCurrentResult.error
+  }
 
   if (currentError) throw currentError
 
-  const statusByUserId = (currentRows || []).reduce((acc, row) => {
-    acc[row.usuario_id] = row.status_pagamento
+  const rowsByUserId = (currentRows || []).reduce((acc, row) => {
+    acc[row.usuario_id] = row
     return acc
   }, {})
 
-  const payload = mapWeeklySummaryToClosurePayload(summary, startDate, endDate, statusByUserId)
+  const openSummary = (summary || []).filter((item) => rowsByUserId[item.usuario_id]?.status_pagamento !== 'pago')
+  const statusByUserId = openSummary.reduce((acc, item) => {
+    acc[item.usuario_id] = normalizePaymentStatus(rowsByUserId[item.usuario_id]?.status_pagamento)
+    return acc
+  }, {})
+  const recalculatedPayload = mapWeeklySummaryToClosurePayload(openSummary, startDate, endDate, statusByUserId)
+  const frozenPaidPayload = Object.values(rowsByUserId)
+    .filter((row) => row.status_pagamento === 'pago')
+    .map(mapWeeklyRowSnapshot)
+
+  const payload = [...recalculatedPayload, ...frozenPaidPayload]
+  if (!payload.length) return []
 
   const { data, error } = await supabase
     .from('fechamentos_semanais')
@@ -104,7 +152,7 @@ export async function listWeeklyClosures(startDate, endDate, options = {}) {
   const { data, error } = await supabase
     .from('fechamentos_semanais')
     .select(
-      'id, usuario_id, total_servicos, total_vendido, total_comissao, status_pagamento, usuario:usuarios(nome,tipo,tipo_remuneracao,recebe_comissao,participa_fechamento_comissao)',
+      'id, usuario_id, total_servicos, total_vendido, total_comissao, status_pagamento, usuario:usuarios!fechamentos_semanais_usuario_id_fkey(nome,tipo,tipo_remuneracao,recebe_comissao,participa_fechamento_comissao)',
     )
     .eq('semana_inicio', startDate)
     .eq('semana_fim', endDate)
@@ -114,10 +162,115 @@ export async function listWeeklyClosures(startDate, endDate, options = {}) {
   return data || []
 }
 
-export async function updateWeeklyClosureStatus(closureId, status) {
-  const { error } = await supabase
+export async function listWeeklyClosuresHistory(limit = 52) {
+  const { data, error } = await supabase
     .from('fechamentos_semanais')
-    .update({ status_pagamento: status })
+    .select(
+      'id, usuario_id, semana_inicio, semana_fim, total_servicos, total_vendido, total_comissao, status_pagamento, pago_em, fechado_por, usuario:usuarios!fechamentos_semanais_usuario_id_fkey(nome)',
+    )
+    .order('semana_inicio', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (!error) return data || []
+
+  const fallback = await supabase
+    .from('fechamentos_semanais')
+    .select(
+      'id, usuario_id, semana_inicio, semana_fim, total_servicos, total_vendido, total_comissao, status_pagamento, usuario:usuarios!fechamentos_semanais_usuario_id_fkey(nome)',
+    )
+    .order('semana_inicio', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (fallback.error) throw fallback.error
+  return fallback.data || []
+}
+
+export async function getPaidCommissionsByMonth(month) {
+  const monthStart = dayjs(month).startOf('month')
+  const monthEnd = dayjs(month).endOf('month')
+
+  const preferred = await supabase
+    .from('fechamentos_semanais')
+    .select('total_comissao, status_pagamento, pago_em, semana_inicio, semana_fim')
+    .in('status_pagamento', ['pago', 'PAGO'])
+
+  if (!preferred.error) {
+    return (preferred.data || []).reduce((sum, row) => {
+      const paidDate = row.pago_em ? dayjs(row.pago_em) : null
+      const fallbackWeekDate = row.semana_fim ? dayjs(row.semana_fim) : dayjs(row.semana_inicio)
+      const dateToCompare = paidDate?.isValid() ? paidDate : fallbackWeekDate
+      const isInMonth =
+        (dateToCompare.isAfter(monthStart) || dateToCompare.isSame(monthStart)) &&
+        (dateToCompare.isBefore(monthEnd) || dateToCompare.isSame(monthEnd))
+      return isInMonth ? sum + Number(row.total_comissao || 0) : sum
+    }, 0)
+  }
+
+  const fallback = await supabase
+    .from('fechamentos_semanais')
+    .select('total_comissao, status_pagamento, semana_inicio, semana_fim')
+    .in('status_pagamento', ['pago', 'PAGO'])
+
+  if (fallback.error) throw fallback.error
+  return (fallback.data || []).reduce((sum, row) => {
+    const weekDate = row.semana_fim ? dayjs(row.semana_fim) : dayjs(row.semana_inicio)
+    const isInMonth =
+      (weekDate.isAfter(monthStart) || weekDate.isSame(monthStart)) &&
+      (weekDate.isBefore(monthEnd) || weekDate.isSame(monthEnd))
+    return isInMonth ? sum + Number(row.total_comissao || 0) : sum
+  }, 0)
+}
+
+export async function settlePastWeeklyClosures(referenceWeekStart, userId) {
+  const updates = {
+    status_pagamento: 'pago',
+    pago_em: new Date().toISOString(),
+    fechado_por: userId || null,
+  }
+
+  let { error } = await supabase
+    .from('fechamentos_semanais')
+    .update(updates)
+    .neq('status_pagamento', 'pago')
+    .lt('semana_inicio', referenceWeekStart)
+
+  if (error) {
+    const fallback = await supabase
+      .from('fechamentos_semanais')
+      .update({ status_pagamento: 'pago' })
+      .neq('status_pagamento', 'pago')
+      .lt('semana_inicio', referenceWeekStart)
+    error = fallback.error
+  }
+
+  if (error) throw error
+}
+
+export async function updateWeeklyClosureStatus(closureId, status, options = {}) {
+  const normalizedStatus = normalizePaymentStatus(status)
+  const updates = { status_pagamento: normalizedStatus }
+  if (normalizedStatus === 'pago') {
+    updates.pago_em = new Date().toISOString()
+    updates.fechado_por = options.userId || null
+  } else {
+    updates.pago_em = null
+    updates.fechado_por = null
+  }
+
+  let { error } = await supabase
+    .from('fechamentos_semanais')
+    .update(updates)
     .eq('id', closureId)
+
+  if (error) {
+    const fallback = await supabase
+      .from('fechamentos_semanais')
+      .update({ status_pagamento: normalizedStatus })
+      .eq('id', closureId)
+    error = fallback.error
+  }
+
   if (error) throw error
 }

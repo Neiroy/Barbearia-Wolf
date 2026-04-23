@@ -121,6 +121,8 @@ export async function deleteExpense(id) {
 
 export async function closeMonthSnapshot({ month, userId, attendances, expenses }) {
   const monthStart = dayjs(month).startOf('month').format('YYYY-MM-DD')
+  const monthDate = dayjs(monthStart)
+  const monthEnd = monthDate.endOf('month').format('YYYY-MM-DD')
   const totalEntradas = (attendances || []).reduce((sum, row) => sum + Number(row.valor_servico || 0), 0)
   const totalComissoes = (attendances || []).reduce(
     (sum, row) => (row.usuario?.recebe_comissao ? sum + Number(row.valor_comissao || 0) : sum),
@@ -132,6 +134,10 @@ export async function closeMonthSnapshot({ month, userId, attendances, expenses 
 
   const payload = {
     referencia_mes: monthStart,
+    mes: monthDate.month() + 1,
+    ano: monthDate.year(),
+    data_inicio: monthStart,
+    data_fim: monthEnd,
     total_entradas: totalEntradas,
     total_gastos: totalGastos,
     total_comissoes: totalComissoes,
@@ -144,6 +150,18 @@ export async function closeMonthSnapshot({ month, userId, attendances, expenses 
 
   const { error } = await supabase.from('fechamentos_mensais').upsert(payload, { onConflict: 'referencia_mes' })
   if (error) throw error
+}
+
+export async function listMonthlyClosuresHistory(limit = 24) {
+  const { data, error } = await supabase
+    .from('fechamentos_mensais')
+    .select('*')
+    .eq('status_fechamento', 'fechado')
+    .order('referencia_mes', { ascending: false })
+    .limit(limit)
+
+  if (error) throw error
+  return data || []
 }
 
 export async function reopenMonthSnapshot(month) {

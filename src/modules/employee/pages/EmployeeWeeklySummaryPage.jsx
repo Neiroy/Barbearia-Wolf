@@ -11,6 +11,7 @@ import { PerformanceKpiCard } from '../components/PerformanceKpiCard'
 import { QuickActionLinks } from '../components/QuickActionLinks'
 import { calculateWeeklySummary, groupAttendancesByCombo, listAttendances } from '../../../services/supabase'
 import { formatCurrency } from '../../../utils/formatters'
+import { getBarberWeekRange } from '../../../utils/dateRanges'
 
 export function EmployeeWeeklySummaryPage() {
   const { profile } = useAuth()
@@ -19,16 +20,18 @@ export function EmployeeWeeklySummaryPage() {
 
   useEffect(() => {
     if (!profile?.id) return
+    const weekRange = getBarberWeekRange()
     listAttendances({
       usuarioId: profile.id,
-      startDate: dayjs().startOf('week').format('YYYY-MM-DD'),
-      endDate: dayjs().endOf('week').format('YYYY-MM-DD'),
+      startDate: weekRange.startDate,
+      endDate: weekRange.endDate,
     }).then(setRows)
   }, [profile?.id])
 
   const totals = useMemo(() => calculateWeeklySummary(rows), [rows])
   const groupedRows = useMemo(() => groupAttendancesByCombo(rows), [rows])
-  const weekRange = `${dayjs().startOf('week').format('DD/MM')} - ${dayjs().endOf('week').format('DD/MM')}`
+  const barberWeekRange = getBarberWeekRange()
+  const weekRange = `${barberWeekRange.start.format('DD/MM')} - ${barberWeekRange.end.format('DD/MM')}`
   const ticketMedio = totals.totalServicos ? totals.totalVendido / totals.totalServicos : 0
   const topService = useMemo(() => {
     const grouped = rows.reduce((acc, row) => {

@@ -80,13 +80,22 @@ create table public.fechamentos_semanais (
   total_vendido numeric(10,2) not null default 0,
   total_comissao numeric(10,2) not null default 0,
   status_pagamento text not null default 'aberto' check (status_pagamento in ('aberto', 'pago')),
+  pago_em timestamptz,
+  fechado_por uuid references public.usuarios(id) on delete set null,
   created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (extract(dow from semana_inicio) = 2),
+  check (extract(dow from semana_fim) = 6),
   unique (usuario_id, semana_inicio, semana_fim)
 );
 
 create table public.fechamentos_mensais (
   id uuid primary key default gen_random_uuid(),
   referencia_mes date not null,
+  mes integer,
+  ano integer,
+  data_inicio date,
+  data_fim date,
   total_entradas numeric(10,2) not null default 0,
   total_gastos numeric(10,2) not null default 0,
   total_comissoes numeric(10,2) not null default 0,
@@ -96,6 +105,7 @@ create table public.fechamentos_mensais (
   fechado_em timestamptz,
   fechado_por uuid references public.usuarios(id) on delete set null,
   created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
   unique (referencia_mes)
 );
 
@@ -348,10 +358,31 @@ as $$
   join public.usuarios u on u.id = a.usuario_id
   where a.data_hora >= (p_inicio::timestamptz)
     and a.data_hora < ((p_fim + 1)::timestamptz)
+    and extract(dow from a.data_hora at time zone 'utc') between 2 and 6
     and u.recebe_comissao = true
     and u.participa_fechamento_comissao = true
   group by a.usuario_id, u.nome;
 $$;
+
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at := now();
+  return new;
+end
+$$;
+
+drop trigger if exists trg_fechamentos_semanais_set_updated_at on public.fechamentos_semanais;
+create trigger trg_fechamentos_semanais_set_updated_at
+before update on public.fechamentos_semanais
+for each row execute function public.set_updated_at();
+
+drop trigger if exists trg_fechamentos_mensais_set_updated_at on public.fechamentos_mensais;
+create trigger trg_fechamentos_mensais_set_updated_at
+before update on public.fechamentos_mensais
+for each row execute function public.set_updated_at();
 
 -- =========================
 -- RLS E POLICIES

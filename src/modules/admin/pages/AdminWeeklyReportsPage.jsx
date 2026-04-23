@@ -10,14 +10,26 @@ import { StatCard } from '../../../components/ui/StatCard'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { SummaryGrid } from '../../../components/ui/SummaryGrid'
 import { Toolbar } from '../../../components/ui/Toolbar'
-import { groupAttendancesByCombo, listAttendances, listWeeklyClosures, updateWeeklyClosureStatus } from '../../../services/supabase'
+import {
+  groupAttendancesByCombo,
+  listAttendances,
+  settlePastWeeklyClosures,
+  listWeeklyClosures,
+  listWeeklyClosuresHistory,
+  updateWeeklyClosureStatus,
+} from '../../../services/supabase'
 import { formatCurrency } from '../../../utils/formatters'
 import { Link } from 'react-router-dom'
 import { useToast } from '../../../context/ToastContext'
 import { captureAppError } from '../../../lib/observability'
+import { useAuth } from '../../../context/AuthContext'
+import { getBarberWeekRange } from '../../../utils/dateRanges'
+import { supabase } from '../../../lib/supabase'
 
 export function AdminWeeklyReportsPage() {
+  const currentBarberWeek = getBarberWeekRange()
   const [rows, setRows] = useState([])
+  const [historyRows, setHistoryRows] = useState([])
   const [ownerProductionRows, setOwnerProductionRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -26,16 +38,29 @@ export function AdminWeeklyReportsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [targetToPay, setTargetToPay] = useState(null)
   const [bulkPayConfirmOpen, setBulkPayConfirmOpen] = useState(false)
-  const [weekStart, setWeekStart] = useState(dayjs().startOf('week').format('YYYY-MM-DD'))
-  const [weekEnd, setWeekEnd] = useState(dayjs().endOf('week').format('YYYY-MM-DD'))
+  const [weekStart, setWeekStart] = useState(currentBarberWeek.startDate)
+  const [weekEnd, setWeekEnd] = useState(currentBarberWeek.endDate)
+  const [weekReferenceDate, setWeekReferenceDate] = useState(dayjs().format('YYYY-MM-DD'))
+  const [lastSyncAt, setLastSyncAt] = useState(null)
   const { showToast } = useToast()
+  const { profile } = useAuth()
 
   const loadWeeklyClosures = useCallback(async () => {
     setLoading(true)
     try {
-      const [closureRows, attendances] = await Promise.all([
-        listWeeklyClosures(weekStart, weekEnd),
-        listAttendances({ startDate: weekStart, endDate: weekEnd }),
+      const safeRange = getBarberWeekRange(weekReferenceDate || weekStart)
+      const safeStart = safeRange.startDate
+      const safeEnd = safeRange.endDate
+      if (safeStart !== weekStart) setWeekStart(safeStart)
+      if (safeEnd !== weekEnd) setWeekEnd(safeEnd)
+
+      const currentWeekStart = getBarberWeekRange().startDate
+      await settlePastWeeklyClosures(currentWeekStart, profile?.id)
+
+      const [closureRows, attendances, closureHistory] = await Promise.all([
+        listWeeklyClosures(safeStart, safeEnd),
+        listAttendances({ startDate: safeStart, endDate: safeEnd }),
+        listWeeklyClosuresHistory(80),
       ])
       const groupedByCombo = groupAttendancesByCombo(attendances)
       const ownerGroups = groupedByCombo
@@ -47,25 +72,46 @@ export function AdminWeeklyReportsPage() {
         .sort((a, b) => Number(b.valor_servico) - Number(a.valor_servico))
       setRows(closureRows)
       setOwnerProductionRows(ownerGroups)
+      setHistoryRows(closureHistory)
+      setLastSyncAt(new Date())
     } catch (error) {
       captureAppError(error, {
         source: 'AdminWeeklyReportsPage.loadWeeklyClosures',
-        weekStart,
-        weekEnd,
+        weekStart: getBarberWeekRange(weekReferenceDate || weekStart).startDate,
+        weekEnd: getBarberWeekRange(weekReferenceDate || weekStart).endDate,
       })
       showToast({
         tone: 'error',
         title: 'Falha ao carregar fechamento',
-        description: 'Nao foi possivel carregar o fechamento semanal.',
+        description: error?.message || 'Nao foi possivel carregar o fechamento semanal.',
       })
     } finally {
       setLoading(false)
     }
-  }, [showToast, weekStart, weekEnd])
+  }, [profile?.id, showToast, weekReferenceDate, weekStart, weekEnd])
 
   useEffect(() => {
     loadWeeklyClosures()
   }, [loadWeeklyClosures])
+
+  useEffect(() => {
+    let refreshTimeoutId = null
+    const scheduleReload = () => {
+      if (refreshTimeoutId) window.clearTimeout(refreshTimeoutId)
+      refreshTimeoutId = window.setTimeout(() => loadWeeklyClosures(), 300)
+    }
+
+    const channel = supabase
+      .channel(`admin-weekly-live-${weekStart}-${weekEnd}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'fechamentos_semanais' }, scheduleReload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'atendimentos' }, scheduleReload)
+      .subscribe()
+
+    return () => {
+      if (refreshTimeoutId) window.clearTimeout(refreshTimeoutId)
+      supabase.removeChannel(channel)
+    }
+  }, [loadWeeklyClosures, weekEnd, weekStart])
 
   const grouped = useMemo(() => {
     return rows.map((row) => ({
@@ -131,8 +177,17 @@ export function AdminWeeklyReportsPage() {
     setSearch('')
     setEmployeeFilter('all')
     setStatusFilter('all')
-    setWeekStart(dayjs().startOf('week').format('YYYY-MM-DD'))
-    setWeekEnd(dayjs().endOf('week').format('YYYY-MM-DD'))
+    const range = getBarberWeekRange()
+    setWeekReferenceDate(dayjs().format('YYYY-MM-DD'))
+    setWeekStart(range.startDate)
+    setWeekEnd(range.endDate)
+  }
+
+  function applyBarberWeekByReferenceDate(value) {
+    const range = getBarberWeekRange(value)
+    setWeekReferenceDate(dayjs(value).format('YYYY-MM-DD'))
+    setWeekStart(range.startDate)
+    setWeekEnd(range.endDate)
   }
 
   function exportCsv() {
@@ -167,7 +222,7 @@ export function AdminWeeklyReportsPage() {
   async function markEmployeeAsPaid(row) {
     setSaving(true)
     try {
-      await updateWeeklyClosureStatus(row.id, 'pago')
+      await updateWeeklyClosureStatus(row.id, 'pago', { userId: profile?.id })
       await loadWeeklyClosures()
       showToast({
         tone: 'success',
@@ -203,7 +258,7 @@ export function AdminWeeklyReportsPage() {
 
     setSaving(true)
     try {
-      await Promise.all(pendingRows.map((row) => updateWeeklyClosureStatus(row.id, 'pago')))
+      await Promise.all(pendingRows.map((row) => updateWeeklyClosureStatus(row.id, 'pago', { userId: profile?.id })))
       await loadWeeklyClosures()
       showToast({
         tone: 'success',
@@ -235,6 +290,9 @@ export function AdminWeeklyReportsPage() {
         description={`Consolidado semanal para conferencia e pagamento de comissoes (${dayjs(weekStart).format('DD/MM')} - ${dayjs(weekEnd).format('DD/MM')}).`}
         actions={
           <div className="flex w-full flex-wrap items-center justify-end gap-2 lg:w-auto">
+            <span className="inline-flex items-center rounded-md border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-emerald-300">
+              {lastSyncAt ? `Sincronizado ${dayjs(lastSyncAt).format('HH:mm:ss')}` : 'Sincronizando...'}
+            </span>
             <button
               type="button"
               onClick={exportCsv}
@@ -302,18 +360,17 @@ export function AdminWeeklyReportsPage() {
           <input
             type="date"
             className="input"
-            value={weekStart}
+            value={weekReferenceDate}
             onFocus={openNativeDatePicker}
             onClick={openNativeDatePicker}
-            onChange={(event) => setWeekStart(event.target.value)}
+            onChange={(event) => applyBarberWeekByReferenceDate(event.target.value)}
           />
           <input
             type="date"
             className="input"
             value={weekEnd}
-            onFocus={openNativeDatePicker}
-            onClick={openNativeDatePicker}
-            onChange={(event) => setWeekEnd(event.target.value)}
+            disabled
+            readOnly
           />
           <label className="relative">
             <UserRound size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -347,14 +404,14 @@ export function AdminWeeklyReportsPage() {
           </label>
           <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300">
             <Filter size={13} />
-            Filtros de semana
+            Semana fixa (terca a sabado)
           </div>
         </div>
       </Toolbar>
 
       <SectionCard
         title="Resumo da semana atual"
-        subtitle="Consolidacao gerencial semanal para conferencias e pagamentos."
+        subtitle="Consolidacao gerencial semanal para conferencias e pagamentos (ciclo fixo: terca a sabado)."
       >
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
@@ -374,6 +431,44 @@ export function AdminWeeklyReportsPage() {
             <p className="mt-1 text-sm font-semibold text-sky-300">{formatCurrency(totals.totalPendente)}</p>
           </div>
         </div>
+      </SectionCard>
+
+      <SectionCard
+        title="Historico semanal congelado"
+        subtitle="Fechamentos anteriores com snapshot salvo no momento do pagamento."
+      >
+        {historyRows.length === 0 ? (
+          <EmptyState
+            title="Sem historico semanal"
+            description="Os fechamentos gerados aparecerao aqui para consulta."
+          />
+        ) : (
+          <DataTable
+            columns={[
+              { key: 'usuario', label: 'Funcionario', render: (row) => row.usuario?.nome || 'Sem nome' },
+              {
+                key: 'periodo',
+                label: 'Periodo',
+                render: (row) =>
+                  `${dayjs(row.semana_inicio).format('DD/MM/YYYY')} ate ${dayjs(row.semana_fim).format('DD/MM/YYYY')}`,
+              },
+              { key: 'total_servicos', label: 'Atendimentos' },
+              { key: 'total_vendido', label: 'Total vendido', render: (row) => formatCurrency(row.total_vendido) },
+              { key: 'total_comissao', label: 'Comissao', render: (row) => formatCurrency(row.total_comissao) },
+              {
+                key: 'pago_em',
+                label: 'Pago em',
+                render: (row) => (row.pago_em ? dayjs(row.pago_em).format('DD/MM/YYYY') : '-'),
+              },
+              {
+                key: 'status_pagamento',
+                label: 'Status',
+                render: (row) => <StatusBadge value={row.status_pagamento === 'aberto' ? 'pendente' : row.status_pagamento} />,
+              },
+            ]}
+            rows={historyRows}
+          />
+        )}
       </SectionCard>
 
       <SectionCard title="Fechamento por funcionario">

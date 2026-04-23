@@ -1,6 +1,7 @@
 import dayjs from 'dayjs'
 import { listAttendances } from './attendanceService'
 import { listExpenses } from './expensesService'
+import { getBarberWeekRange } from '../../utils/dateRanges'
 
 export function groupAttendancesByCombo(attendances) {
   const grouped = attendances.reduce((acc, row) => {
@@ -70,13 +71,13 @@ export function calculateMonthlyFinancial(attendances, expenses) {
 
 export async function getAdminDashboardSnapshot() {
   const today = dayjs().format('YYYY-MM-DD')
-  const weekStart = dayjs().startOf('week').format('YYYY-MM-DD')
+  const barberWeek = getBarberWeekRange()
   const monthStart = dayjs().startOf('month').format('YYYY-MM-DD')
   const monthEnd = dayjs().endOf('month').format('YYYY-MM-DD')
 
   const [todayRows, weekRows, monthRows, monthExpenses] = await Promise.all([
     listAttendances({ startDate: today, endDate: today }),
-    listAttendances({ startDate: weekStart, endDate: dayjs().format('YYYY-MM-DD') }),
+    listAttendances({ startDate: barberWeek.startDate, endDate: barberWeek.endDate }),
     listAttendances({ startDate: monthStart, endDate: monthEnd }),
     listExpenses(monthStart),
   ])
