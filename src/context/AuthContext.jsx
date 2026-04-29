@@ -116,6 +116,13 @@ export function AuthProvider({ children }) {
       return null
     }
     if (!error) {
+      if (data?.ativo === false) {
+        setProfile(null)
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.removeItem(PROFILE_CACHE_KEY)
+        }
+        throw new Error('Seu acesso foi desativado. Fale com o administrador.')
+      }
       setProfile(data)
       if (typeof window !== 'undefined') {
         window.sessionStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(data))

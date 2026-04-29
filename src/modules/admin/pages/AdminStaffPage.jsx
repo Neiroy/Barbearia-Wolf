@@ -8,7 +8,7 @@ import { SectionCard } from '../../../components/ui/SectionCard'
 import { StatCard } from '../../../components/ui/StatCard'
 import { SummaryGrid } from '../../../components/ui/SummaryGrid'
 import { Toolbar } from '../../../components/ui/Toolbar'
-import { listEmployees, saveEmployee } from '../../../services/supabase'
+import { listEmployees, saveEmployee, setEmployeeStatus } from '../../../services/supabase'
 import { formatPercentInput, parsePercentInput } from '../../../utils/formatters'
 import { useToast } from '../../../context/ToastContext'
 import { captureAppError } from '../../../lib/observability'
@@ -28,6 +28,7 @@ export function AdminStaffPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('todos')
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
 
@@ -45,14 +46,18 @@ export function AdminStaffPage() {
     reload()
   }, [])
 
-  const filteredRows = useMemo(
-    () => rows.filter((row) => row.nome?.toLowerCase().includes(search.toLowerCase().trim())),
-    [rows, search],
-  )
+  const filteredRows = useMemo(() => {
+    let list = rows.filter((row) => row.nome?.toLowerCase().includes(search.toLowerCase().trim()))
+    if (statusFilter === 'ativos') list = list.filter((row) => row.ativo !== false)
+    if (statusFilter === 'inativos') list = list.filter((row) => row.ativo === false)
+    return list
+  }, [rows, search, statusFilter])
 
   const kpis = useMemo(() => {
     const total = rows.length
-    const rowsComissionados = rows.filter((row) => row.recebe_comissao)
+    const ativos = rows.filter((row) => row.ativo !== false)
+    const inativos = rows.filter((row) => row.ativo === false)
+    const rowsComissionados = ativos.filter((row) => row.recebe_comissao)
     const mediaComissao = rowsComissionados.length
       ? rowsComissionados.reduce((sum, row) => sum + Number(row.percentual_comissao || 0), 0) / rowsComissionados.length
       : 0
@@ -60,8 +65,8 @@ export function AdminStaffPage() {
       ? Math.max(...rowsComissionados.map((row) => Number(row.percentual_comissao || 0)))
       : 0
     const totalComissionados = rowsComissionados.length
-    const totalSemComissao = rows.length - rowsComissionados.length
-    return { total, mediaComissao, maiorComissao, totalComissionados, totalSemComissao }
+    const totalSemComissao = ativos.length - rowsComissionados.length
+    return { total, mediaComissao, maiorComissao, totalComissionados, totalSemComissao, ativos: ativos.length, inativos: inativos.length }
   }, [rows])
 
   if (loading) return <LoadingState label="Carregando equipe..." />
@@ -84,7 +89,7 @@ export function AdminStaffPage() {
         }
       />
 
-      <SummaryGrid columns={5}>
+      <SummaryGrid columns={6}>
         <StatCard label="Total de perfis" value={kpis.total} hint="Usuarios cadastrados no sistema" />
         <StatCard label="Perfis com comissao" value={kpis.totalComissionados} hint="Participam de pagamento semanal" />
         <StatCard label="Perfis sem comissao" value={kpis.totalSemComissao} hint="Dono/admin ou remuneracao fixa" />
@@ -98,7 +103,8 @@ export function AdminStaffPage() {
           value={`${kpis.maiorComissao.toFixed(1)}%`}
           hint="Maior percentual configurado"
         />
-        <StatCard label="Controle de acesso" value="Ativo" hint="Permissoes e perfis validados" />
+        <StatCard label="Ativos" value={kpis.ativos} hint="Podem acessar e lancar atendimentos" />
+        <StatCard label="Inativos" value={kpis.inativos} hint="Bloqueados sem perder historico" />
       </SummaryGrid>
 
       <SectionCard title="Regra financeira por perfil" subtitle="Configure acesso e remuneracao de forma separada.">
@@ -229,7 +235,15 @@ export function AdminStaffPage() {
             </label>
             <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300">
               <Filter size={13} />
-              Filtros ativos
+              <select
+                className="bg-transparent text-xs text-slate-300 outline-none"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+              >
+                <option value="todos">Todos</option>
+                <option value="ativos">Somente ativos</option>
+                <option value="inativos">Somente inativos</option>
+              </select>
             </div>
           </div>
         </Toolbar>
@@ -285,23 +299,108 @@ export function AdminStaffPage() {
                   ),
                 },
                 {
+                  key: 'status',
+                  label: 'Status',
+                  render: (row) => (
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs ${
+                        row.ativo === false
+                          ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+                          : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                      }`}
+                    >
+                      {row.ativo === false ? 'Inativo' : 'Ativo'}
+                    </span>
+                  ),
+                },
+                {
                   key: 'actions',
                   label: 'Acao',
                   render: (row) => (
-                    <button
-                      className="btn-secondary"
-                      type="button"
-                      onClick={() =>
-                        setForm({
-                          ...row,
-                          recebe_comissao: Boolean(row.recebe_comissao),
-                          participa_fechamento_comissao: Boolean(row.participa_fechamento_comissao),
-                          percentual_comissao: formatPercentInput(row.percentual_comissao),
-                        })
-                      }
-                    >
-                      Selecionar
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        className="btn-secondary"
+                        type="button"
+                        onClick={() =>
+                          setForm({
+                            ...row,
+                            recebe_comissao: Boolean(row.recebe_comissao),
+                            participa_fechamento_comissao: Boolean(row.participa_fechamento_comissao),
+                            percentual_comissao: formatPercentInput(row.percentual_comissao),
+                          })
+                        }
+                      >
+                        Selecionar
+                      </button>
+                      {row.tipo === 'admin' ? null : row.ativo === false ? (
+                        <button
+                          className="btn-secondary"
+                          type="button"
+                          onClick={async () => {
+                            setError('')
+                            setFeedback('')
+                            try {
+                              await setEmployeeStatus({ id: row.id, ativo: true })
+                              await reload()
+                              setFeedback(`${row.nome} reativado com sucesso.`)
+                              showToast({ tone: 'success', title: 'Funcionario reativado' })
+                            } catch (statusError) {
+                              setError(statusError.message || 'Falha ao reativar funcionario.')
+                              showToast({ tone: 'error', title: 'Falha ao reativar', description: statusError.message || 'Tente novamente.' })
+                            }
+                          }}
+                        >
+                          Reativar
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            className="btn-secondary"
+                            type="button"
+                            onClick={async () => {
+                              const ok = window.confirm(`Desativar ${row.nome}? Ele nao conseguira acessar e lancar atendimentos.`)
+                              if (!ok) return
+                              setError('')
+                              setFeedback('')
+                              try {
+                                await setEmployeeStatus({ id: row.id, ativo: false })
+                                await reload()
+                                setFeedback(`${row.nome} desativado com sucesso.`)
+                                showToast({ tone: 'success', title: 'Funcionario desativado' })
+                              } catch (statusError) {
+                                setError(statusError.message || 'Falha ao desativar funcionario.')
+                                showToast({ tone: 'error', title: 'Falha ao desativar', description: statusError.message || 'Tente novamente.' })
+                              }
+                            }}
+                          >
+                            Desativar
+                          </button>
+                          <button
+                            className="btn-secondary"
+                            type="button"
+                            onClick={async () => {
+                              const ok = window.confirm(
+                                `Excluir logicamente ${row.nome}? O historico sera mantido e o acesso bloqueado.`,
+                              )
+                              if (!ok) return
+                              setError('')
+                              setFeedback('')
+                              try {
+                                await setEmployeeStatus({ id: row.id, ativo: false, excluirLogico: true })
+                                await reload()
+                                setFeedback(`${row.nome} excluido logicamente com historico preservado.`)
+                                showToast({ tone: 'success', title: 'Funcionario excluido logicamente' })
+                              } catch (statusError) {
+                                setError(statusError.message || 'Falha ao excluir funcionario.')
+                                showToast({ tone: 'error', title: 'Falha ao excluir', description: statusError.message || 'Tente novamente.' })
+                              }
+                            }}
+                          >
+                            Excluir
+                          </button>
+                        </>
+                      )}
+                    </div>
                   ),
                 },
               ]}
