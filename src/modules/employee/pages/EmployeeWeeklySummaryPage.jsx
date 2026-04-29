@@ -75,7 +75,7 @@ export function EmployeeWeeklySummaryPage() {
         actions={<QuickActionLinks actions={quickActions} />}
       />
 
-      <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
+      <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3 xl:grid-cols-6">
         <PerformanceKpiCard
           title="Atendimentos da semana"
           value={totals.totalServicos}
@@ -83,15 +83,27 @@ export function EmployeeWeeklySummaryPage() {
           icon={<Scissors size={18} />}
         />
         <PerformanceKpiCard
-          title="Total vendido"
+          title="Realizado"
           value={formatCurrency(totals.totalVendido)}
-          subtitle="Receita gerada nesta semana"
+          subtitle="Producao registrada (terca a sabado)"
           icon={<DollarSign size={18} />}
         />
         <PerformanceKpiCard
-          title={receivesCommission ? 'Comissao total' : 'Comissao total (nao aplicavel)'}
+          title="Recebido"
+          value={formatCurrency(totals.totalRecebido)}
+          subtitle="Cliente ja pagou"
+          icon={<DollarSign size={18} />}
+        />
+        <PerformanceKpiCard
+          title="Pendente"
+          value={formatCurrency(totals.totalPendenteReceber)}
+          subtitle="Aguardando pagamento do cliente"
+          icon={<Receipt size={18} />}
+        />
+        <PerformanceKpiCard
+          title={receivesCommission ? 'Comissao valida' : 'Comissao (nao aplicavel)'}
           value={formatCurrency(totals.totalComissao)}
-          subtitle={receivesCommission ? 'Acumulado de comissao semanal' : 'Perfil sem recebimento de comissao'}
+          subtitle={receivesCommission ? 'Sobre vendas pagas pelo cliente' : 'Perfil sem comissao'}
           icon={<Wallet size={18} />}
         />
         <PerformanceKpiCard

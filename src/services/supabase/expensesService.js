@@ -1,6 +1,7 @@
 import dayjs from 'dayjs'
 import { supabase } from '../../lib/supabase'
 import { getCommissionMonthlySummary } from './attendanceService'
+import { calculateMonthlyFinancial } from '../../utils/financialCalculations'
 
 export function buildRecurringInsertPayload(templates, monthRows, monthStart) {
   const templateIds = (templates || []).map((item) => item.id)
@@ -124,25 +125,8 @@ export async function closeMonthSnapshot({ month, userId, attendances, expenses 
   const monthStart = dayjs(month).startOf('month').format('YYYY-MM-DD')
   const monthDate = dayjs(monthStart)
   const monthEnd = monthDate.endOf('month').format('YYYY-MM-DD')
-  const totalEntradas = (attendances || []).reduce((sum, row) => sum + Number(row.valor_servico || 0), 0)
-  const faturamentoEquipe = (attendances || []).reduce(
-    (sum, row) => (row.usuario?.recebe_comissao ? sum + Number(row.valor_servico || 0) : sum),
-    0,
-  )
-  const faturamentoAdmin = (attendances || []).reduce(
-    (sum, row) => (!row.usuario?.recebe_comissao ? sum + Number(row.valor_servico || 0) : sum),
-    0,
-  )
-  const totalComissoes = (attendances || []).reduce(
-    (sum, row) => (row.usuario?.recebe_comissao ? sum + Number(row.valor_comissao || 0) : sum),
-    0,
-  )
   const commissionSummary = await getCommissionMonthlySummary(monthStart)
-  const comissaoPaga = Number(commissionSummary.paga || 0)
-  const comissaoPendente = Math.max(totalComissoes - comissaoPaga, 0)
-  const totalGastos = (expenses || []).reduce((sum, row) => sum + Number(row.valor || 0), 0)
-  const lucroBruto = totalEntradas - totalComissoes
-  const lucroLiquido = lucroBruto - totalGastos
+  const fin = calculateMonthlyFinancial(attendances || [], expenses || [], commissionSummary.paga)
 
   const payload = {
     referencia_mes: monthStart,
@@ -150,15 +134,17 @@ export async function closeMonthSnapshot({ month, userId, attendances, expenses 
     ano: monthDate.year(),
     data_inicio: monthStart,
     data_fim: monthEnd,
-    total_entradas: totalEntradas,
-    faturamento_equipe: faturamentoEquipe,
-    faturamento_admin: faturamentoAdmin,
-    total_gastos: totalGastos,
-    total_comissoes: totalComissoes,
-    comissao_paga: comissaoPaga,
-    comissao_pendente: comissaoPendente,
-    lucro_bruto: lucroBruto,
-    lucro_liquido: lucroLiquido,
+    total_entradas: fin.totalEntradas,
+    total_recebido: fin.totalRecebido,
+    total_pendente: fin.totalPendenteReceber,
+    faturamento_equipe: fin.faturamentoFuncionarios,
+    faturamento_admin: fin.faturamentoAdminDono,
+    total_gastos: fin.totalGastos,
+    total_comissoes: fin.totalComissoes,
+    comissao_paga: fin.comissaoPaga,
+    comissao_pendente: fin.comissaoPendente,
+    lucro_bruto: fin.lucroBruto,
+    lucro_liquido: fin.lucroLiquido,
     status_fechamento: 'fechado',
     fechado_em: new Date().toISOString(),
     fechado_por: userId || null,

@@ -105,6 +105,7 @@ export function AdminWeeklyReportsPage() {
       .channel(`admin-weekly-live-${weekStart}-${weekEnd}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'fechamentos_semanais' }, scheduleReload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'atendimentos' }, scheduleReload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vendas' }, scheduleReload)
       .subscribe()
 
     return () => {
@@ -121,6 +122,8 @@ export function AdminWeeklyReportsPage() {
       participaFechamentoComissao: Boolean(row.usuario?.participa_fechamento_comissao),
       totalServicos: Number(row.total_servicos || 0),
       totalVendido: Number(row.total_vendido || 0),
+      totalRecebido: Number(row.total_recebido ?? 0),
+      totalPendente: Number(row.total_pendente ?? 0),
       totalComissao: Number(row.total_comissao || 0),
       status: row.status_pagamento || 'aberto',
       usuarioId: row.usuario_id,
@@ -143,20 +146,24 @@ export function AdminWeeklyReportsPage() {
     const totalFuncionarios = filteredRows.length
     const totalAtendimentos = filteredRows.reduce((sum, row) => sum + Number(row.totalServicos), 0)
     const totalVendido = filteredRows.reduce((sum, row) => sum + Number(row.totalVendido), 0)
+    const totalRecebidoCliente = filteredRows.reduce((sum, row) => sum + Number(row.totalRecebido ?? 0), 0)
+    const totalPendenteCliente = filteredRows.reduce((sum, row) => sum + Number(row.totalPendente ?? 0), 0)
     const totalComissao = filteredRows.reduce((sum, row) => sum + Number(row.totalComissao), 0)
     const ticketMedio = totalAtendimentos ? totalVendido / totalAtendimentos : 0
     const totalPago = filteredRows
       .filter((row) => row.status === 'pago')
       .reduce((sum, row) => sum + Number(row.totalComissao), 0)
-    const totalPendente = totalComissao - totalPago
+    const totalPendenteFechamento = totalComissao - totalPago
     return {
       totalFuncionarios,
       totalAtendimentos,
       totalVendido,
+      totalRecebidoCliente,
+      totalPendenteCliente,
       totalComissao,
       ticketMedio,
       totalPago,
-      totalPendente,
+      totalPendenteFechamento,
     }
   }, [filteredRows])
   const ownerTotals = useMemo(() => {
@@ -196,9 +203,11 @@ export function AdminWeeklyReportsPage() {
       'Tipo remuneracao',
       'Participa fechamento comissao',
       'Atendimentos',
-      'Total vendido',
-      'Comissao',
-      'Status',
+      'Total realizado',
+      'Recebido (cliente)',
+      'Pendente (cliente)',
+      'Comissao valida',
+      'Status fechamento',
     ]
     const lines = filteredRows.map((row) => [
       row.funcionario,
@@ -206,6 +215,8 @@ export function AdminWeeklyReportsPage() {
       row.participaFechamentoComissao ? 'sim' : 'nao',
       row.totalServicos,
       Number(row.totalVendido || 0).toFixed(2),
+      Number(row.totalRecebido ?? 0).toFixed(2),
+      Number(row.totalPendente ?? 0).toFixed(2),
       Number(row.totalComissao || 0).toFixed(2),
       row.status,
     ])
@@ -344,11 +355,15 @@ export function AdminWeeklyReportsPage() {
       />
 
       <SummaryGrid columns={5}>
-        <StatCard label="Total vendido" value={formatCurrency(totals.totalVendido)} hint="Receita da semana filtrada" />
-        <StatCard label="Total de comissoes" value={formatCurrency(totals.totalComissao)} hint="Comissao consolidada" />
-        <StatCard label="Total atendimentos" value={totals.totalAtendimentos} hint="Servicos realizados" />
-        <StatCard label="Funcionarios no fechamento" value={totals.totalFuncionarios} hint="Equipe com movimento" />
-        <StatCard label="Ticket medio semanal" value={formatCurrency(totals.ticketMedio)} hint="Media por atendimento" />
+        <StatCard label="Realizado (semana)" value={formatCurrency(totals.totalVendido)} hint="Producao terca a sabado" />
+        <StatCard label="Recebido (cliente)" value={formatCurrency(totals.totalRecebidoCliente)} hint="Vendas quitadas" />
+        <StatCard label="Pendente (cliente)" value={formatCurrency(totals.totalPendenteCliente)} hint="Aguardando pagamento" />
+        <StatCard label="Comissao valida" value={formatCurrency(totals.totalComissao)} hint="Sobre vendas pagas" />
+        <StatCard label="Ticket medio" value={formatCurrency(totals.ticketMedio)} hint="Media por atendimento" />
+      </SummaryGrid>
+      <SummaryGrid columns={2}>
+        <StatCard label="Total atendimentos" value={totals.totalAtendimentos} />
+        <StatCard label="Funcionarios no fechamento" value={totals.totalFuncionarios} />
       </SummaryGrid>
 
       <SummaryGrid columns={2}>
@@ -446,7 +461,7 @@ export function AdminWeeklyReportsPage() {
           </div>
           <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-3">
             <p className="text-xs uppercase tracking-wide text-sky-300">Total pendente</p>
-            <p className="mt-1 text-sm font-semibold text-sky-300">{formatCurrency(totals.totalPendente)}</p>
+            <p className="mt-1 text-sm font-semibold text-sky-300">{formatCurrency(totals.totalPendenteFechamento)}</p>
           </div>
         </div>
       </SectionCard>
@@ -473,14 +488,24 @@ export function AdminWeeklyReportsPage() {
             { key: 'totalServicos', label: 'Atendimentos' },
             {
               key: 'totalVendido',
-              label: 'Total vendido',
+              label: 'Realizado',
               render: (row) => (
                 <span className="font-semibold text-emerald-300">{formatCurrency(row.totalVendido)}</span>
               ),
             },
             {
+              key: 'totalRecebido',
+              label: 'Recebido',
+              render: (row) => <span className="text-slate-200">{formatCurrency(row.totalRecebido)}</span>,
+            },
+            {
+              key: 'totalPendente',
+              label: 'Pendente',
+              render: (row) => <span className="text-amber-200/90">{formatCurrency(row.totalPendente)}</span>,
+            },
+            {
               key: 'totalComissao',
-              label: 'Comissao',
+              label: 'Comissao valida',
               render: (row) => (
                 <span className="inline-flex items-center gap-1 font-semibold text-sky-300">
                   <Wallet size={13} />

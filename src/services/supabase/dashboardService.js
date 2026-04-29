@@ -2,6 +2,9 @@ import dayjs from 'dayjs'
 import { getCommissionMonthlySummary, listAttendances } from './attendanceService'
 import { listExpenses } from './expensesService'
 import { getBarberWeekRange } from '../../utils/dateRanges'
+import { splitRowCashflow, sumCashflowSplits, calculateMonthlyFinancial } from '../../utils/financialCalculations'
+
+export { splitRowCashflow, sumCashflowSplits, calculateMonthlyFinancial } from '../../utils/financialCalculations'
 
 export function groupAttendancesByCombo(attendances) {
   const grouped = attendances.reduce((acc, row) => {
@@ -12,6 +15,7 @@ export function groupAttendancesByCombo(attendances) {
       acc[comboKey] = {
         id: comboKey,
         venda_id: row.venda_id || null,
+        venda: row.venda || null,
         data_hora: row.data_hora,
         usuario_id: row.usuario_id,
         cliente_nome: row.cliente_nome,
@@ -19,6 +23,7 @@ export function groupAttendancesByCombo(attendances) {
         valor_comissao: 0,
       }
     }
+    if (row.venda) acc[comboKey].venda = row.venda
     acc[comboKey].valor_servico += Number(row.valor_servico || 0)
     acc[comboKey].valor_comissao += Number(row.valor_comissao || 0)
     return acc
@@ -34,43 +39,19 @@ export function calculateWeeklySummary(attendances) {
       acc.totalServicos += 1
       acc.totalVendido += Number(current.valor_servico)
       acc.totalComissao += Number(current.valor_comissao)
+      const flow = splitRowCashflow({ valor_servico: current.valor_servico, venda: current.venda })
+      acc.totalRecebido += flow.recebido
+      acc.totalPendenteReceber += flow.pendente
       return acc
     },
-    { totalServicos: 0, totalVendido: 0, totalComissao: 0 },
+    {
+      totalServicos: 0,
+      totalVendido: 0,
+      totalComissao: 0,
+      totalRecebido: 0,
+      totalPendenteReceber: 0,
+    },
   )
-}
-
-export function calculateMonthlyFinancial(attendances, expenses, paidCommissions = null) {
-  const totalEntradas = attendances.reduce((sum, row) => sum + Number(row.valor_servico), 0)
-  const faturamentoFuncionarios = attendances.reduce(
-    (sum, row) => (row.usuario?.recebe_comissao ? sum + Number(row.valor_servico) : sum),
-    0,
-  )
-  const faturamentoAdminDono = attendances.reduce(
-    (sum, row) => (!row.usuario?.recebe_comissao ? sum + Number(row.valor_servico) : sum),
-    0,
-  )
-  const totalComissoes = attendances.reduce(
-    (sum, row) => (row.usuario?.recebe_comissao ? sum + Number(row.valor_comissao) : sum),
-    0,
-  )
-  const comissaoPaga = Number(paidCommissions ?? 0)
-  const comissaoPendente = Math.max(totalComissoes - comissaoPaga, 0)
-  const totalGastos = expenses.reduce((sum, row) => sum + Number(row.valor), 0)
-  const lucroBruto = totalEntradas - totalComissoes
-  const lucroLiquido = lucroBruto - totalGastos
-
-  return {
-    totalEntradas,
-    faturamentoFuncionarios,
-    faturamentoAdminDono,
-    totalComissoes,
-    comissaoPaga,
-    comissaoPendente,
-    totalGastos,
-    lucroBruto,
-    lucroLiquido,
-  }
 }
 
 export async function getAdminDashboardSnapshot() {
@@ -89,9 +70,12 @@ export async function getAdminDashboardSnapshot() {
 
   const groupedMonthAttendances = groupAttendancesByCombo(monthRows)
   const monthly = calculateMonthlyFinancial(monthRows, monthExpenses, commissionSummary.paga)
+  const todayCash = sumCashflowSplits(todayRows)
+  const weekCash = sumCashflowSplits(weekRows)
+
   const employeeTotals = weekRows.reduce((acc, row) => {
     const key = row.usuario?.nome || 'Sem nome'
-    acc[key] = (acc[key] || 0) + Number(row.valor_servico)
+    acc[key] = (acc[key] || 0) + splitRowCashflow(row).realizado
     return acc
   }, {})
   const highlightEmployee =
@@ -105,9 +89,15 @@ export async function getAdminDashboardSnapshot() {
   const mostUsedService = Object.entries(serviceTotals).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Sem dados'
 
   return {
-    todayRevenue: todayRows.reduce((sum, row) => sum + Number(row.valor_servico), 0),
-    weekRevenue: weekRows.reduce((sum, row) => sum + Number(row.valor_servico), 0),
+    todayRevenue: todayCash.realizado,
+    todayReceived: todayCash.recebido,
+    todayPending: todayCash.pendente,
+    weekRevenue: weekCash.realizado,
+    weekReceived: weekCash.recebido,
+    weekPending: weekCash.pendente,
     monthRevenue: monthly.totalEntradas,
+    monthReceived: monthly.totalRecebido,
+    monthPending: monthly.totalPendenteReceber,
     monthExpenses: monthly.totalGastos,
     monthCommissions: monthly.totalComissoes,
     monthCommissionsGenerated: monthly.totalComissoes,
@@ -116,6 +106,7 @@ export async function getAdminDashboardSnapshot() {
     monthEmployeeRevenue: monthly.faturamentoFuncionarios,
     monthOwnerRevenue: monthly.faturamentoAdminDono,
     monthNetProfit: monthly.lucroLiquido,
+    monthGrossProfit: monthly.lucroBruto,
     ticketMedio: groupedMonthAttendances.length ? monthly.totalEntradas / groupedMonthAttendances.length : 0,
     totalAttendances: groupedMonthAttendances.length,
     highlightEmployee,

@@ -58,8 +58,18 @@ export function AdminHistoriesPage() {
               render: (row) => `${dayjs(row.semana_inicio).format('DD/MM/YYYY')} ate ${dayjs(row.semana_fim).format('DD/MM/YYYY')}`,
             },
             { key: 'total_servicos', label: 'Atendimentos' },
-            { key: 'total_vendido', label: 'Total vendido', render: (row) => formatCurrency(row.total_vendido) },
-            { key: 'total_comissao', label: 'Comissao', render: (row) => formatCurrency(row.total_comissao) },
+            { key: 'total_vendido', label: 'Realizado', render: (row) => formatCurrency(row.total_vendido) },
+            {
+              key: 'total_recebido',
+              label: 'Recebido',
+              render: (row) => formatCurrency(row.total_recebido ?? 0),
+            },
+            {
+              key: 'total_pendente',
+              label: 'Pendente',
+              render: (row) => formatCurrency(row.total_pendente ?? 0),
+            },
+            { key: 'total_comissao', label: 'Comissao valida', render: (row) => formatCurrency(row.total_comissao) },
             { key: 'pago_em', label: 'Pago em', render: (row) => (row.pago_em ? dayjs(row.pago_em).format('DD/MM/YYYY') : '-') },
             { key: 'status_pagamento', label: 'Status', render: (row) => (row.status_pagamento === 'pago' ? 'Pago' : 'Pendente') },
           ]}
@@ -72,7 +82,13 @@ export function AdminHistoriesPage() {
         <DataTable
           columns={[
             { key: 'referencia_mes', label: 'Mes/ano', render: (row) => dayjs(row.referencia_mes).format('MM/YYYY') },
-            { key: 'total_entradas', label: 'Faturamento total', render: (row) => formatCurrency(row.total_entradas) },
+            { key: 'total_entradas', label: 'Realizado', render: (row) => formatCurrency(row.total_entradas) },
+            {
+              key: 'total_recebido',
+              label: 'Recebido',
+              render: (row) => formatCurrency(row.total_recebido != null ? row.total_recebido : row.total_entradas),
+            },
+            { key: 'total_pendente', label: 'Pendente', render: (row) => formatCurrency(row.total_pendente ?? 0) },
             { key: 'faturamento_equipe', label: 'Equipe', render: (row) => formatCurrency(row.faturamento_equipe || 0) },
             { key: 'faturamento_admin', label: 'Admin/Dono', render: (row) => formatCurrency(row.faturamento_admin || 0) },
             { key: 'total_gastos', label: 'Gastos', render: (row) => formatCurrency(row.total_gastos) },
@@ -90,7 +106,17 @@ export function AdminHistoriesPage() {
           columns={[
             { key: 'funcionario', label: 'Funcionario', render: (row) => row.usuario?.nome || 'Sem nome' },
             { key: 'periodo', label: 'Periodo pago', render: (row) => `${dayjs(row.semana_inicio).format('DD/MM/YYYY')} ate ${dayjs(row.semana_fim).format('DD/MM/YYYY')}` },
-            { key: 'valor_pago', label: 'Valor pago', render: (row) => formatCurrency(row.valor_pago) },
+            {
+              key: 'snapshot',
+              label: 'Snapshot semana',
+              render: (row) => (
+                <span className="text-xs text-slate-400">
+                  R {formatCurrency(row.snapshot_total_realizado ?? 0)} /{' '}
+                  {formatCurrency(row.snapshot_total_recebido ?? 0)} / P {formatCurrency(row.snapshot_total_pendente ?? 0)}
+                </span>
+              ),
+            },
+            { key: 'valor_pago', label: 'Comissao paga', render: (row) => formatCurrency(row.valor_pago) },
             { key: 'pago_em', label: 'Data do pagamento', render: (row) => dayjs(row.pago_em).format('DD/MM/YYYY') },
             { key: 'marcado_por', label: 'Marcado por', render: (row) => row.marcado_por_usuario?.nome || '-' },
             { key: 'status_registro', label: 'Status', render: (row) => (row.status_registro === 'pago' ? 'Pago' : 'Reaberto') },

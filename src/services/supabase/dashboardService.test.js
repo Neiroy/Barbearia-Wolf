@@ -47,4 +47,27 @@ describe('dashboardService regras financeiras', () => {
     expect(monthly.lucroBruto).toBe(178)
     expect(monthly.lucroLiquido).toBe(148)
   })
+
+  it('lucro mensal usa caixa recebido: venda pendente nao entra em recebido nem em comissao na linha', () => {
+    const attendances = [
+      {
+        valor_servico: 100,
+        valor_comissao: 0,
+        usuario: { recebe_comissao: true },
+        venda: { status_pagamento: 'pendente' },
+      },
+      {
+        valor_servico: 50,
+        valor_comissao: 20,
+        usuario: { recebe_comissao: true },
+        venda: { status_pagamento: 'pago' },
+      },
+    ]
+    const monthly = calculateMonthlyFinancial(attendances, [{ valor: 10 }], 0)
+    expect(monthly.totalEntradas).toBe(150)
+    expect(monthly.totalRecebido).toBe(50)
+    expect(monthly.totalComissoes).toBe(20)
+    expect(monthly.lucroBruto).toBe(30)
+    expect(monthly.lucroLiquido).toBe(20)
+  })
 })

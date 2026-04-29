@@ -9,7 +9,9 @@ import { StatCard } from '../../../components/ui/StatCard'
 import { SummaryGrid } from '../../../components/ui/SummaryGrid'
 import { Toolbar } from '../../../components/ui/Toolbar'
 import { EmptyState, LoadingState } from '../../../components/ui/FeedbackStates'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { listAttendances } from '../../../services/supabase'
+import { splitRowCashflow } from '../../../utils/financialCalculations'
 import { formatCurrency, formatDateTime } from '../../../utils/formatters'
 
 export function EmployeeMyAttendancesPage() {
@@ -51,6 +53,7 @@ export function EmployeeMyAttendancesPage() {
         acc[comboKey] = {
           id: comboKey,
           venda_id: row.venda_id || null,
+          venda: row.venda || null,
           data_hora: row.data_hora,
           cliente_nome: row.cliente_nome,
           usuario_id: row.usuario_id,
@@ -59,6 +62,7 @@ export function EmployeeMyAttendancesPage() {
           valor_comissao: 0,
         }
       }
+      if (row.venda) acc[comboKey].venda = row.venda
       acc[comboKey].servicos.push({
         nome: row.servico?.nome || '-',
         valor: Number(row.valor_servico || 0),
@@ -112,11 +116,26 @@ export function EmployeeMyAttendancesPage() {
   const totals = useMemo(() => {
     const totalAtendimentos = filteredRows.length
     const totalVendido = filteredRows.reduce((sum, row) => sum + Number(row.valor_servico), 0)
+    let totalRecebido = 0
+    let totalPendenteCliente = 0
+    filteredRows.forEach((row) => {
+      const f = splitRowCashflow({ valor_servico: row.valor_servico, venda: row.venda })
+      totalRecebido += f.recebido
+      totalPendenteCliente += f.pendente
+    })
     const totalComissao = filteredRows.reduce((sum, row) => sum + Number(row.valor_comissao), 0)
     const ticketMedio = totalAtendimentos ? totalVendido / totalAtendimentos : 0
     const ultimoAtendimento = filteredRows[0]?.data_hora
 
-    return { totalAtendimentos, totalVendido, totalComissao, ticketMedio, ultimoAtendimento }
+    return {
+      totalAtendimentos,
+      totalVendido,
+      totalRecebido,
+      totalPendenteCliente,
+      totalComissao,
+      ticketMedio,
+      ultimoAtendimento,
+    }
   }, [filteredRows])
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize))
@@ -157,14 +176,18 @@ export function EmployeeMyAttendancesPage() {
         }
       />
 
-      <SummaryGrid columns={4}>
-        <StatCard label="Total de atendimentos" value={totals.totalAtendimentos} hint="No periodo selecionado" />
-        <StatCard label="Total vendido" value={formatCurrency(totals.totalVendido)} hint="Soma dos servicos" />
+      <SummaryGrid columns={5}>
+        <StatCard label="Atendimentos" value={totals.totalAtendimentos} hint="No periodo selecionado" />
+        <StatCard label="Realizado" value={formatCurrency(totals.totalVendido)} hint="Servicos executados" />
+        <StatCard label="Recebido (cliente pagou)" value={formatCurrency(totals.totalRecebido)} hint="Caixa confirmado" />
+        <StatCard label="Pendente (cliente)" value={formatCurrency(totals.totalPendenteCliente)} hint="Aguardando pagamento" />
         <StatCard
-          label={receivesCommission ? 'Total de comissao' : 'Comissao (nao aplicavel)'}
+          label={receivesCommission ? 'Comissao valida' : 'Comissao (nao aplicavel)'}
           value={formatCurrency(totals.totalComissao)}
-          hint={receivesCommission ? 'Comissao acumulada' : 'Este perfil nao recebe comissao'}
+          hint={receivesCommission ? 'Sobre vendas ja pagas' : 'Este perfil nao recebe comissao'}
         />
+      </SummaryGrid>
+      <SummaryGrid columns={2}>
         <StatCard
           label="Ticket medio"
           value={formatCurrency(totals.ticketMedio)}
@@ -260,6 +283,24 @@ export function EmployeeMyAttendancesPage() {
                   key: 'cliente_nome',
                   label: 'Cliente',
                   render: (row) => <span className="font-semibold text-slate-100">{row.cliente_nome}</span>,
+                },
+                {
+                  key: 'pagamento',
+                  label: 'Pagamento',
+                  render: (row) => {
+                    const st = row.venda?.status_pagamento || 'pago'
+                    const label =
+                      st === 'pago'
+                        ? 'Pago'
+                        : st === 'pendente'
+                          ? 'Pendente'
+                          : st === 'parcial'
+                            ? 'Parcial'
+                            : st === 'cancelado'
+                              ? 'Cancelado'
+                              : st
+                    return <StatusBadge value={label} />
+                  },
                 },
                 {
                   key: 'servico',

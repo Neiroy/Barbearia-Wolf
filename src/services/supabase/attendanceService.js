@@ -30,6 +30,8 @@ export function mapWeeklySummaryToClosurePayload(summary, startDate, endDate, st
     semana_fim: endDate,
     total_servicos: Number(item.total_atendimentos || 0),
     total_vendido: Number(item.total_vendido || 0),
+    total_recebido: Number(item.total_recebido ?? 0),
+    total_pendente: Number(item.total_pendente ?? 0),
     total_comissao: Number(item.total_comissao || 0),
     status_pagamento: normalizePaymentStatus(statusByUserId[item.usuario_id]),
   }))
@@ -42,6 +44,8 @@ function mapWeeklyRowSnapshot(row) {
     semana_fim: row.semana_fim,
     total_servicos: Number(row.total_servicos || 0),
     total_vendido: Number(row.total_vendido || 0),
+    total_recebido: Number(row.total_recebido ?? 0),
+    total_pendente: Number(row.total_pendente ?? 0),
     total_comissao: Number(row.total_comissao || 0),
     status_pagamento: normalizePaymentStatus(row.status_pagamento),
     pago_em: row.pago_em || null,
@@ -53,7 +57,7 @@ export async function listAttendances(filters = {}) {
   let query = supabase
     .from('atendimentos')
     .select(
-      'id, venda_id, usuario_id, cliente_nome, servico_id, valor_servico, percentual_comissao, valor_comissao, data_hora, created_at, usuario:usuarios(nome,tipo,tipo_remuneracao,recebe_comissao,percentual_comissao,participa_fechamento_comissao), servico:servicos(nome)',
+      'id, venda_id, usuario_id, cliente_nome, servico_id, valor_servico, percentual_comissao, valor_comissao, data_hora, created_at, venda:vendas(id,status_pagamento,forma_pagamento,valor_total,valor_pago,data_pagamento,observacao_pagamento), usuario:usuarios(nome,tipo,tipo_remuneracao,recebe_comissao,percentual_comissao,participa_fechamento_comissao), servico:servicos(nome)',
     )
     .order('data_hora', { ascending: false })
 
@@ -95,6 +99,17 @@ export async function saveAttendanceBatch(payload) {
   return data
 }
 
+export async function markVendaPago(payload) {
+  const { error } = await supabase.rpc('marcar_venda_pago', {
+    p_venda_id: payload.vendaId,
+    p_forma_pagamento: payload.formaPagamento ?? null,
+    p_valor_pago: payload.valorPago != null ? Number(payload.valorPago) : null,
+    p_observacao: payload.observacao ?? null,
+    p_marcado_por: payload.userId ?? null,
+  })
+  if (error) throw error
+}
+
 export async function getWeeklySummaryByEmployee(startDate, endDate) {
   assertBarberWeekRange(startDate, endDate)
   const { data, error } = await supabase.rpc('resumo_semanal_por_funcionario', {
@@ -116,7 +131,7 @@ export async function syncWeeklyClosures(startDate, endDate) {
   const detailedCurrentQuery = supabase
     .from('fechamentos_semanais')
     .select(
-      'usuario_id, semana_inicio, semana_fim, total_servicos, total_vendido, total_comissao, status_pagamento, pago_em, fechado_por',
+      'usuario_id, semana_inicio, semana_fim, total_servicos, total_vendido, total_recebido, total_pendente, total_comissao, status_pagamento, pago_em, fechado_por',
     )
     .eq('semana_inicio', startDate)
     .eq('semana_fim', endDate)
@@ -128,7 +143,9 @@ export async function syncWeeklyClosures(startDate, endDate) {
   if (currentError) {
     const fallbackCurrentResult = await supabase
       .from('fechamentos_semanais')
-      .select('usuario_id, semana_inicio, semana_fim, total_servicos, total_vendido, total_comissao, status_pagamento')
+      .select(
+        'usuario_id, semana_inicio, semana_fim, total_servicos, total_vendido, total_recebido, total_pendente, total_comissao, status_pagamento',
+      )
       .eq('semana_inicio', startDate)
       .eq('semana_fim', endDate)
       .in('usuario_id', userIdsFilter)
@@ -173,7 +190,7 @@ export async function listWeeklyClosures(startDate, endDate, options = {}) {
   const { data, error } = await supabase
     .from('fechamentos_semanais')
     .select(
-      'id, usuario_id, total_servicos, total_vendido, total_comissao, status_pagamento, usuario:usuarios!fechamentos_semanais_usuario_id_fkey(nome,tipo,tipo_remuneracao,recebe_comissao,participa_fechamento_comissao)',
+      'id, usuario_id, total_servicos, total_vendido, total_recebido, total_pendente, total_comissao, status_pagamento, usuario:usuarios!fechamentos_semanais_usuario_id_fkey(nome,tipo,tipo_remuneracao,recebe_comissao,participa_fechamento_comissao)',
     )
     .eq('semana_inicio', startDate)
     .eq('semana_fim', endDate)
@@ -187,7 +204,7 @@ export async function listWeeklyClosuresHistory(limit = 52) {
   const { data, error } = await supabase
     .from('fechamentos_semanais')
     .select(
-      'id, usuario_id, semana_inicio, semana_fim, total_servicos, total_vendido, total_comissao, status_pagamento, pago_em, fechado_por, usuario:usuarios!fechamentos_semanais_usuario_id_fkey(nome)',
+      'id, usuario_id, semana_inicio, semana_fim, total_servicos, total_vendido, total_recebido, total_pendente, total_comissao, status_pagamento, pago_em, fechado_por, usuario:usuarios!fechamentos_semanais_usuario_id_fkey(nome)',
     )
     .order('semana_inicio', { ascending: false })
     .order('created_at', { ascending: false })
@@ -198,7 +215,7 @@ export async function listWeeklyClosuresHistory(limit = 52) {
   const fallback = await supabase
     .from('fechamentos_semanais')
     .select(
-      'id, usuario_id, semana_inicio, semana_fim, total_servicos, total_vendido, total_comissao, status_pagamento, usuario:usuarios!fechamentos_semanais_usuario_id_fkey(nome)',
+      'id, usuario_id, semana_inicio, semana_fim, total_servicos, total_vendido, total_recebido, total_pendente, total_comissao, status_pagamento, usuario:usuarios!fechamentos_semanais_usuario_id_fkey(nome)',
     )
     .order('semana_inicio', { ascending: false })
     .order('created_at', { ascending: false })
@@ -250,7 +267,7 @@ export async function listCommissionPaymentsHistory(limit = 120) {
   const { data, error } = await supabase
     .from('comissoes_pagamentos')
     .select(
-      'id, fechamento_semanal_id, usuario_id, semana_inicio, semana_fim, valor_pago, pago_em, marcado_por, status_registro, usuario:usuarios!comissoes_pagamentos_usuario_id_fkey(nome), marcado_por_usuario:usuarios!comissoes_pagamentos_marcado_por_fkey(nome)',
+      'id, fechamento_semanal_id, usuario_id, semana_inicio, semana_fim, valor_pago, pago_em, marcado_por, status_registro, snapshot_total_realizado, snapshot_total_recebido, snapshot_total_pendente, usuario:usuarios!comissoes_pagamentos_usuario_id_fkey(nome), marcado_por_usuario:usuarios!comissoes_pagamentos_marcado_por_fkey(nome)',
     )
     .order('pago_em', { ascending: false })
     .limit(limit)
@@ -387,7 +404,7 @@ export async function updateWeeklyClosureStatus(closureId, status, options = {})
     .from('fechamentos_semanais')
     .update(updates)
     .eq('id', closureId)
-    .select('id, usuario_id, semana_inicio, semana_fim, total_comissao, pago_em')
+    .select('id, usuario_id, semana_inicio, semana_fim, total_comissao, total_vendido, total_recebido, total_pendente, pago_em')
     .maybeSingle()
 
   if (error) {
@@ -395,7 +412,7 @@ export async function updateWeeklyClosureStatus(closureId, status, options = {})
       .from('fechamentos_semanais')
       .update({ status_pagamento: normalizedStatus })
       .eq('id', closureId)
-      .select('id, usuario_id, semana_inicio, semana_fim, total_comissao, pago_em')
+      .select('id, usuario_id, semana_inicio, semana_fim, total_comissao, total_vendido, total_recebido, total_pendente, pago_em')
       .maybeSingle()
     error = fallback.error
     data = fallback.data
@@ -416,6 +433,9 @@ export async function updateWeeklyClosureStatus(closureId, status, options = {})
         pago_em: data.pago_em || new Date().toISOString(),
         marcado_por: options.userId || null,
         status_registro: 'pago',
+        snapshot_total_realizado: Number(data.total_vendido || 0),
+        snapshot_total_recebido: Number(data.total_recebido ?? 0),
+        snapshot_total_pendente: Number(data.total_pendente ?? 0),
       },
       { onConflict: 'fechamento_semanal_id' },
     )

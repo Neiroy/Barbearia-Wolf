@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import { BadgeDollarSign, CalendarCheck2, Download, Landmark, TrendingUp, Users, Wallet } from 'lucide-react'
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { PageHeader } from '../../../components/ui/PageHeader'
 import { StatCard } from '../../../components/ui/StatCard'
 import { CurrencyCard, SummaryGrid } from '../../../components/ui/SummaryGrid'
@@ -65,6 +66,7 @@ export function AdminDashboardPage() {
           return {
             ...group,
             usuario: source?.usuario,
+            venda: source?.venda || null,
             servicoResumo: matchingRows.map((row) => row.servico?.nome || '-'),
             servicoValores: matchingRows.map((row) => Number(row.valor_servico || 0)),
           }
@@ -208,32 +210,58 @@ export function AdminDashboardPage() {
 
       <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
         <PrimaryKpiCard
-          title="Faturamento do mes"
+          title="Realizado no mes"
           value={formatCurrency(snapshot.monthRevenue)}
-          subtitle="Receita consolidada no periodo atual"
+          subtitle="Producao registrada (inclui vendas pendentes)"
           icon={<BadgeDollarSign size={18} />}
+          variant="highlight"
+        />
+        <PrimaryKpiCard
+          title="Recebido no mes (caixa)"
+          value={formatCurrency(snapshot.monthReceived)}
+          subtitle="Vendas ja pagas pelo cliente"
+          icon={<BadgeDollarSign size={18} />}
+          variant="highlight"
+        />
+        <PrimaryKpiCard
+          title="Pendente de recebimento"
+          value={formatCurrency(snapshot.monthPending)}
+          subtitle="Ainda nao quitado pelo cliente"
+          icon={<Landmark size={18} />}
           variant="highlight"
         />
         <PrimaryKpiCard
           title="Lucro liquido do mes"
           value={formatCurrency(snapshot.monthNetProfit)}
-          subtitle="Resultado apos gastos e comissoes"
+          subtitle="Sobre caixa recebido, apos gastos e comissoes validas"
           icon={<TrendingUp size={18} />}
           variant="highlight"
         />
-        <PrimaryKpiCard
-          title="Comissoes a pagar no mes"
-          value={formatCurrency(snapshot.monthCommissionsPending)}
-          subtitle="Valor pendente de pagamento no mes"
-          icon={<Landmark size={18} />}
-          variant="highlight"
-        />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
         <PrimaryKpiCard
           title="Gastos no mes"
           value={formatCurrency(snapshot.monthExpenses)}
           subtitle="Custos operacionais e despesas totais"
           icon={<Wallet size={18} />}
-          variant="highlight"
+        />
+        <PrimaryKpiCard
+          title="Comissao gerada (sobre pago)"
+          value={formatCurrency(snapshot.monthCommissionsGenerated)}
+          subtitle="Somente servicos com venda quitada"
+          icon={<Users size={18} />}
+        />
+        <PrimaryKpiCard
+          title="Comissao paga (equipe)"
+          value={formatCurrency(snapshot.monthCommissionsPaid)}
+          subtitle="Fechamento semanal quitado"
+          icon={<CalendarCheck2 size={18} />}
+        />
+        <PrimaryKpiCard
+          title="Comissao pendente (equipe)"
+          value={formatCurrency(snapshot.monthCommissionsPending)}
+          subtitle="A pagar aos funcionarios"
+          icon={<Landmark size={18} />}
         />
       </div>
 
@@ -298,10 +326,16 @@ export function AdminDashboardPage() {
 
       <SectionCard title="Operacao do periodo" subtitle="Indicadores operacionais para leitura rapida da performance.">
         <SummaryGrid columns={4}>
-          <StatCard label="Faturamento de hoje" value={formatCurrency(snapshot.todayRevenue)} />
-          <StatCard label="Faturamento da semana" value={formatCurrency(snapshot.weekRevenue)} />
-          <StatCard label="Ticket medio" value={formatCurrency(snapshot.ticketMedio)} />
+          <StatCard label="Realizado hoje" value={formatCurrency(snapshot.todayRevenue)} />
+          <StatCard label="Recebido hoje (caixa)" value={formatCurrency(snapshot.todayReceived)} />
+          <StatCard label="Realizado na semana" value={formatCurrency(snapshot.weekRevenue)} />
+          <StatCard label="Recebido na semana" value={formatCurrency(snapshot.weekReceived)} />
+        </SummaryGrid>
+        <SummaryGrid columns={4}>
+          <StatCard label="Ticket medio (mes)" value={formatCurrency(snapshot.ticketMedio)} />
           <StatCard label="Atendimentos no mes" value={snapshot.totalAttendances} />
+          <StatCard label="Pendente hoje" value={formatCurrency(snapshot.todayPending)} />
+          <StatCard label="Pendente na semana" value={formatCurrency(snapshot.weekPending)} />
         </SummaryGrid>
       </SectionCard>
 
@@ -391,17 +425,12 @@ export function AdminDashboardPage() {
 
       <SectionCard
         title="Comissoes e fechamento"
-        subtitle={`Leitura da semana atual (${currentWeekRange.start.format('DD/MM')} - ${currentWeekRange.end.format('DD/MM')}).`}
+        subtitle={`Leitura da semana atual (${currentWeekRange.start.format('DD/MM')} - ${currentWeekRange.end.format('DD/MM')}). Comissao valida somente sobre vendas pagas pelo cliente.`}
       >
         <SummaryGrid columns={4}>
-          <StatCard label="Comissao gerada" value={formatCurrency(snapshot.monthCommissionsGenerated)} />
-          <StatCard label="Comissao paga" value={formatCurrency(snapshot.monthCommissionsPaid)} />
-          <StatCard label="Comissao pendente" value={formatCurrency(snapshot.monthCommissionsPending)} />
-          <StatCard label="Comissao da semana" value={formatCurrency(weeklyClosingSummary.total)} />
-        </SummaryGrid>
-        <SummaryGrid columns={4}>
-          <StatCard label="Comissao em aberto" value={formatCurrency(weeklyClosingSummary.open)} />
-          <StatCard label="Comissao ja paga" value={formatCurrency(weeklyClosingSummary.paid)} />
+          <StatCard label="Semana: comissao consolidada" value={formatCurrency(weeklyClosingSummary.total)} />
+          <StatCard label="Semana: ja paga ao funcionario" value={formatCurrency(weeklyClosingSummary.paid)} />
+          <StatCard label="Semana: em aberto (equipe)" value={formatCurrency(weeklyClosingSummary.open)} />
           <StatCard label="Funcionarios pendentes" value={weeklyClosingSummary.pendingCount} hint={weeklyClosingSummary.statusText} />
         </SummaryGrid>
         <div className="mt-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-300">
@@ -423,6 +452,24 @@ export function AdminDashboardPage() {
           columns={[
             { key: 'data_hora', label: 'Horario/Data', render: (row) => formatDateTime(row.data_hora) },
             { key: 'cliente_nome', label: 'Cliente' },
+            {
+              key: 'pagamento',
+              label: 'Pagamento',
+              render: (row) => {
+                const st = row.venda?.status_pagamento || 'pago'
+                const label =
+                  st === 'pago'
+                    ? 'Pago'
+                    : st === 'pendente'
+                      ? 'Pendente'
+                      : st === 'parcial'
+                        ? 'Parcial'
+                        : st === 'cancelado'
+                          ? 'Cancelado'
+                          : st
+                return <StatusBadge value={label} />
+              },
+            },
             {
               key: 'servico',
               label: 'Servico(s)',

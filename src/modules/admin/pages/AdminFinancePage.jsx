@@ -21,6 +21,7 @@ import {
   reopenMonthSnapshot,
   saveExpense,
 } from '../../../services/supabase'
+import { splitRowCashflow } from '../../../utils/financialCalculations'
 import { formatCurrency, formatCurrencyInput, formatDate, parseCurrencyInput } from '../../../utils/formatters'
 import { useToast } from '../../../context/ToastContext'
 import { captureAppError } from '../../../lib/observability'
@@ -93,6 +94,7 @@ export function AdminFinancePage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'fechamentos_semanais' }, scheduleReload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'fechamentos_mensais' }, scheduleReload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'atendimentos' }, scheduleReload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vendas' }, scheduleReload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'gastos' }, scheduleReload)
       .subscribe()
 
@@ -116,16 +118,19 @@ export function AdminFinancePage() {
           funcionario: row.usuario?.nome || 'Sem nome',
           tipoRemuneracao: row.usuario?.tipo_remuneracao || 'nao_informado',
           recebeComissao: Boolean(row.usuario?.recebe_comissao),
-          totalVendido: 0,
+          totalRealizado: 0,
+          totalRecebido: 0,
           totalComissao: 0,
         }
       }
-      acc[key].totalVendido += Number(row.valor_servico || 0)
+      const flow = splitRowCashflow(row)
+      acc[key].totalRealizado += flow.realizado
+      acc[key].totalRecebido += flow.recebido
       acc[key].totalComissao += Number(row.valor_comissao || 0)
       return acc
     }, {})
 
-    return Object.values(grouped).sort((a, b) => b.totalVendido - a.totalVendido)
+    return Object.values(grouped).sort((a, b) => b.totalRealizado - a.totalRealizado)
   }, [attendances])
   const expensesByCategory = useMemo(
     () =>
@@ -223,28 +228,42 @@ export function AdminFinancePage() {
       />
 
       <SummaryGrid columns={7}>
-        <CurrencyCard label="Faturamento total" value={formatCurrency(displayedTotals.totalEntradas)} />
-        <CurrencyCard label="Faturamento funcionarios" value={formatCurrency(displayedTotals.faturamentoFuncionarios)} />
-        <CurrencyCard label="Faturamento dono/admin" value={formatCurrency(displayedTotals.faturamentoAdminDono)} />
         <CurrencyCard
-          label="Comissao gerada"
-          value={formatCurrency(commissionSummary.gerada)}
-          hint="Total acumulado por funcionarios comissionados"
+          label="Total realizado"
+          value={formatCurrency(displayedTotals.totalEntradas)}
+          hint="Servicos executados no mes (inclui pendentes de pagamento)"
         />
         <CurrencyCard
-          label="Comissao paga"
-          value={formatCurrency(commissionSummary.paga)}
-          hint="Pagamentos marcados no fechamento semanal"
+          label="Total recebido (caixa)"
+          value={formatCurrency(displayedTotals.totalRecebido)}
+          hint="Vendas quitadas pelo cliente"
         />
         <CurrencyCard
-          label="Comissao pendente"
-          value={formatCurrency(commissionSummary.pendente)}
-          hint="Aberto para pagamento no mes"
+          label="Total pendente"
+          value={formatCurrency(displayedTotals.totalPendenteReceber)}
+          hint="Ainda nao recebido da carteira de clientes"
         />
+        <CurrencyCard label="Faturamento funcionarios (realizado)" value={formatCurrency(displayedTotals.faturamentoFuncionarios)} />
+        <CurrencyCard label="Faturamento dono/admin (realizado)" value={formatCurrency(displayedTotals.faturamentoAdminDono)} />
         <CurrencyCard label="Gastos" value={formatCurrency(displayedTotals.totalGastos)} />
+        <CurrencyCard
+          label="Comissao gerada (sobre pago)"
+          value={formatCurrency(commissionSummary.gerada)}
+          hint="Somente vendas ja pagas pelo cliente"
+        />
       </SummaryGrid>
       <SummaryGrid columns={4}>
-        <CurrencyCard label="Lucro bruto" value={formatCurrency(displayedTotals.lucroBruto)} />
+        <CurrencyCard
+          label="Comissao paga (funcionarios)"
+          value={formatCurrency(commissionSummary.paga)}
+          hint="Fechamento semanal marcado como pago"
+        />
+        <CurrencyCard
+          label="Comissao pendente (funcionarios)"
+          value={formatCurrency(commissionSummary.pendente)}
+          hint="A pagar aos funcionarios no mes"
+        />
+        <CurrencyCard label="Lucro bruto (sobre caixa)" value={formatCurrency(displayedTotals.lucroBruto)} />
         <CurrencyCard label="Lucro liquido" value={formatCurrency(displayedTotals.lucroLiquido)} />
       </SummaryGrid>
 
@@ -262,13 +281,18 @@ export function AdminFinancePage() {
                 row.recebeComissao ? 'Funcionario comissionado' : 'Dono/Admin (sem comissao)',
             },
             {
-              key: 'totalVendido',
-              label: 'Total vendido',
-              render: (row) => formatCurrency(row.totalVendido),
+              key: 'totalRealizado',
+              label: 'Realizado',
+              render: (row) => formatCurrency(row.totalRealizado),
+            },
+            {
+              key: 'totalRecebido',
+              label: 'Recebido',
+              render: (row) => formatCurrency(row.totalRecebido),
             },
             {
               key: 'totalComissao',
-              label: 'Comissao do colaborador',
+              label: 'Comissao (paga pelo cliente)',
               render: (row) => formatCurrency(row.recebeComissao ? row.totalComissao : 0),
             },
           ]}
@@ -288,10 +312,16 @@ export function AdminFinancePage() {
               label: 'Mes/ano',
               render: (row) => dayjs(row.referencia_mes).format('MM/YYYY'),
             },
-            { key: 'total_entradas', label: 'Faturamento', render: (row) => formatCurrency(row.total_entradas) },
+            { key: 'total_entradas', label: 'Realizado', render: (row) => formatCurrency(row.total_entradas) },
+            {
+              key: 'total_recebido',
+              label: 'Recebido',
+              render: (row) => formatCurrency(row.total_recebido != null ? row.total_recebido : row.total_entradas),
+            },
+            { key: 'total_pendente', label: 'Pendente', render: (row) => formatCurrency(row.total_pendente ?? 0) },
             { key: 'faturamento_equipe', label: 'Equipe', render: (row) => formatCurrency(row.faturamento_equipe || 0) },
             { key: 'faturamento_admin', label: 'Admin/Dono', render: (row) => formatCurrency(row.faturamento_admin || 0) },
-            { key: 'total_comissoes', label: 'Comissoes', render: (row) => formatCurrency(row.total_comissoes) },
+            { key: 'total_comissoes', label: 'Comissoes geradas', render: (row) => formatCurrency(row.total_comissoes) },
             { key: 'comissao_paga', label: 'Comissao paga', render: (row) => formatCurrency(row.comissao_paga || 0) },
             { key: 'comissao_pendente', label: 'Comissao pendente', render: (row) => formatCurrency(row.comissao_pendente || 0) },
             { key: 'total_gastos', label: 'Gastos', render: (row) => formatCurrency(row.total_gastos) },

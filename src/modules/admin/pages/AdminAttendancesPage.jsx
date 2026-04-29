@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import { CalendarRange, ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign, Clock3, Download, Filter, Scissors, Search, SlidersHorizontal, UserRound, Wallet } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -6,12 +6,27 @@ import { DataTable } from '../../../components/ui/DataTable'
 import { EmptyState, LoadingState } from '../../../components/ui/FeedbackStates'
 import { PageHeader } from '../../../components/ui/PageHeader'
 import { StatCard } from '../../../components/ui/StatCard'
+import { StatusBadge } from '../../../components/ui/StatusBadge'
 import { SummaryGrid } from '../../../components/ui/SummaryGrid'
 import { Toolbar } from '../../../components/ui/Toolbar'
-import { listAttendances, listWeeklyClosuresHistory } from '../../../services/supabase'
+import { useAuth } from '../../../context/AuthContext'
+import { useToast } from '../../../context/ToastContext'
+import { captureAppError } from '../../../lib/observability'
+import { listAttendances, listWeeklyClosuresHistory, markVendaPago } from '../../../services/supabase'
+import { splitRowCashflow } from '../../../utils/financialCalculations'
 import { formatCurrency, formatDateTime } from '../../../utils/formatters'
 
+const PAYMENT_FORMS = [
+  { value: 'pix', label: 'PIX' },
+  { value: 'dinheiro', label: 'Dinheiro' },
+  { value: 'cartao_credito', label: 'Cartao credito' },
+  { value: 'cartao_debito', label: 'Cartao debito' },
+  { value: 'outros', label: 'Outros' },
+]
+
 export function AdminAttendancesPage() {
+  const { profile } = useAuth()
+  const { showToast } = useToast()
   const [startDate, setStartDate] = useState(dayjs().startOf('month').format('YYYY-MM-DD'))
   const [endDate, setEndDate] = useState(dayjs().format('YYYY-MM-DD'))
   const [rows, setRows] = useState([])
@@ -21,26 +36,34 @@ export function AdminAttendancesPage() {
   const [search, setSearch] = useState('')
   const [employeeFilter, setEmployeeFilter] = useState('all')
   const [serviceFilter, setServiceFilter] = useState('all')
+  const [paymentFilter, setPaymentFilter] = useState('all')
   const [sortOrder, setSortOrder] = useState('desc')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [payModal, setPayModal] = useState(null)
+  const [payForma, setPayForma] = useState('pix')
+  const [markingPay, setMarkingPay] = useState(false)
+
+  const reload = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [attendanceRows, weeklyRows] = await Promise.all([
+        listAttendances({ startDate, endDate }),
+        listWeeklyClosuresHistory(260),
+      ])
+      setRows(attendanceRows)
+      setWeeklyHistoryRows(weeklyRows)
+    } catch (error) {
+      captureAppError(error, { source: 'AdminAttendancesPage.reload' })
+      showToast({ tone: 'error', title: 'Erro ao carregar', description: error.message })
+    } finally {
+      setLoading(false)
+    }
+  }, [endDate, showToast, startDate])
 
   useEffect(() => {
-    async function loadAttendances() {
-      setLoading(true)
-      try {
-        const [attendanceRows, weeklyRows] = await Promise.all([
-          listAttendances({ startDate, endDate }),
-          listWeeklyClosuresHistory(260),
-        ])
-        setRows(attendanceRows)
-        setWeeklyHistoryRows(weeklyRows)
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadAttendances()
-  }, [startDate, endDate])
+    reload()
+  }, [reload])
 
   const uniqueEmployees = useMemo(
     () => Array.from(new Set(rows.map((row) => row.usuario?.nome).filter(Boolean))),
@@ -59,6 +82,7 @@ export function AdminAttendancesPage() {
         acc[comboKey] = {
           id: comboKey,
           venda_id: row.venda_id || null,
+          venda: row.venda || null,
           data_hora: row.data_hora,
           cliente_nome: row.cliente_nome,
           usuario: row.usuario,
@@ -68,6 +92,7 @@ export function AdminAttendancesPage() {
           valor_comissao: 0,
         }
       }
+      if (row.venda) acc[comboKey].venda = row.venda
       acc[comboKey].servicos.push({
         nome: row.servico?.nome || '-',
         valor: Number(row.valor_servico || 0),
@@ -92,6 +117,15 @@ export function AdminAttendancesPage() {
 
     if (employeeFilter !== 'all') list = list.filter((row) => (row.usuario?.nome || '') === employeeFilter)
     if (serviceFilter !== 'all') list = list.filter((row) => row.servicos.some((service) => service.nome === serviceFilter))
+    if (paymentFilter === 'pagos') {
+      list = list.filter((row) => (row.venda?.status_pagamento || 'pago') === 'pago')
+    }
+    if (paymentFilter === 'pendentes') {
+      list = list.filter((row) => {
+        const st = row.venda?.status_pagamento || 'pago'
+        return st === 'pendente' || st === 'parcial'
+      })
+    }
 
     return [...list].sort((a, b) => {
       const timeA = new Date(a.data_hora).getTime()
@@ -104,26 +138,35 @@ export function AdminAttendancesPage() {
       if (sortOrder === 'comissao_asc') return Number(a.valor_comissao) - Number(b.valor_comissao)
       return 0
     })
-  }, [groupedRows, search, employeeFilter, serviceFilter, sortOrder])
+  }, [groupedRows, search, employeeFilter, serviceFilter, paymentFilter, sortOrder])
 
   const totals = useMemo(() => {
     const totalAtendimentos = filteredRows.length
-    const totalVendido = filteredRows.reduce((sum, row) => sum + Number(row.valor_servico), 0)
-    const totalComissao = filteredRows.reduce(
-      (sum, row) => (row.usuario?.recebe_comissao ? sum + Number(row.valor_comissao) : sum),
+    let totalRealizado = 0
+    let totalRecebido = 0
+    let totalPendenteCaixa = 0
+    filteredRows.forEach((row) => {
+      const sample = { valor_servico: row.valor_servico, venda: row.venda }
+      const flow = splitRowCashflow(sample)
+      totalRealizado += flow.realizado
+      totalRecebido += flow.recebido
+      totalPendenteCaixa += flow.pendente
+    })
+    const totalComissaoValida = filteredRows.reduce(
+      (sum, row) => (row.usuario?.recebe_comissao ? sum + Number(row.valor_comissao || 0) : sum),
       0,
     )
-    const faturamentoFuncionarios = filteredRows.reduce(
-      (sum, row) => (row.usuario?.recebe_comissao ? sum + Number(row.valor_servico) : sum),
-      0,
-    )
-    const faturamentoAdminDono = filteredRows.reduce(
-      (sum, row) => (!row.usuario?.recebe_comissao ? sum + Number(row.valor_servico) : sum),
-      0,
-    )
+    const faturamentoFuncionarios = filteredRows.reduce((sum, row) => {
+      if (!row.usuario?.recebe_comissao) return sum
+      return sum + splitRowCashflow({ valor_servico: row.valor_servico, venda: row.venda }).realizado
+    }, 0)
+    const faturamentoAdminDono = filteredRows.reduce((sum, row) => {
+      if (row.usuario?.recebe_comissao) return sum
+      return sum + splitRowCashflow({ valor_servico: row.valor_servico, venda: row.venda }).realizado
+    }, 0)
     const periodStart = dayjs(startDate).startOf('day')
     const periodEnd = dayjs(endDate).endOf('day')
-    const comissaoPendente = (weeklyHistoryRows || []).reduce((sum, row) => {
+    const comissaoFuncionarioPendenteFechamento = (weeklyHistoryRows || []).reduce((sum, row) => {
       if ((row.status_pagamento || 'aberto') === 'pago') return sum
       const weekStart = dayjs(row.semana_inicio).startOf('day')
       const weekEnd = dayjs(row.semana_fim).endOf('day')
@@ -133,9 +176,11 @@ export function AdminAttendancesPage() {
     const totalFuncionarios = new Set(filteredRows.map((row) => row.usuario?.nome).filter(Boolean)).size
     return {
       totalAtendimentos,
-      totalVendido,
-      totalComissao,
-      comissaoPendente,
+      totalRealizado,
+      totalRecebido,
+      totalPendenteCaixa,
+      totalComissaoValida,
+      comissaoFuncionarioPendenteFechamento,
       faturamentoFuncionarios,
       faturamentoAdminDono,
       totalFuncionarios,
@@ -151,7 +196,7 @@ export function AdminAttendancesPage() {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, employeeFilter, serviceFilter, sortOrder, pageSize, startDate, endDate])
+  }, [search, employeeFilter, serviceFilter, paymentFilter, sortOrder, pageSize, startDate, endDate])
 
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages)
@@ -169,6 +214,7 @@ export function AdminAttendancesPage() {
     setSearch('')
     setEmployeeFilter('all')
     setServiceFilter('all')
+    setPaymentFilter('all')
     setSortOrder('desc')
     setStartDate(dayjs().startOf('month').format('YYYY-MM-DD'))
     setEndDate(dayjs().format('YYYY-MM-DD'))
@@ -189,9 +235,11 @@ export function AdminAttendancesPage() {
       'Tipo remuneracao',
       'Participa fechamento comissao',
       'Cliente',
+      'Status pagamento',
+      'Forma pagamento',
       'Servicos',
       'Valor Total',
-      'Comissao Total',
+      'Comissao valida',
     ]
     const lines = filteredRows.map((row) => [
       formatDateTime(row.data_hora),
@@ -199,6 +247,8 @@ export function AdminAttendancesPage() {
       row.usuario?.tipo_remuneracao || 'nao_informado',
       row.usuario?.participa_fechamento_comissao ? 'sim' : 'nao',
       row.cliente_nome || '',
+      row.venda?.status_pagamento || 'pago',
+      row.venda?.forma_pagamento || '',
       row.servicos.map((service) => service.nome).join(' + '),
       Number(row.valor_servico || 0).toFixed(2),
       Number(row.valor_comissao || 0).toFixed(2),
@@ -252,27 +302,40 @@ export function AdminAttendancesPage() {
 
       <SummaryGrid columns={6}>
         <StatCard
-          label="Total de atendimentos (individual ou combo)"
+          label="Atendimentos (combos)"
           value={totals.totalAtendimentos}
-          hint="Contagem por atendimento agrupado no periodo filtrado"
-        />
-        <StatCard label="Total vendido" value={formatCurrency(totals.totalVendido)} hint="Receita consolidada geral" />
-        <StatCard
-          label="Receita da equipe"
-          value={formatCurrency(totals.faturamentoFuncionarios)}
-          hint="Somente quem recebe comissao"
+          hint="Agrupados no periodo filtrado"
         />
         <StatCard
-          label="Receita dono/admin"
-          value={formatCurrency(totals.faturamentoAdminDono)}
-          hint="Producao sem custo de comissao"
+          label="Total realizado"
+          value={formatCurrency(totals.totalRealizado)}
+          hint="Servicos executados (inclui pendente de pagamento)"
         />
-        <StatCard label="Comissao a pagar" value={formatCurrency(totals.comissaoPendente)} hint="Somente comissao pendente no periodo" />
-        <StatCard label="Funcionarios ativos" value={totals.totalFuncionarios} hint="Com atendimento no periodo" />
+        <StatCard label="Total recebido" value={formatCurrency(totals.totalRecebido)} hint="Caixa confirmado (vendas pagas)" />
+        <StatCard
+          label="A receber (cliente)"
+          value={formatCurrency(totals.totalPendenteCaixa)}
+          hint="Vendas ainda nao quitadas"
+        />
+        <StatCard
+          label="Comissao valida (pago)"
+          value={formatCurrency(totals.totalComissaoValida)}
+          hint="Sobre vendas ja pagas pelo cliente"
+        />
+        <StatCard
+          label="Comissao equipe pendente (fechamento)"
+          value={formatCurrency(totals.comissaoFuncionarioPendenteFechamento)}
+          hint="Fechamento semanal de comissao ainda nao paga ao funcionario"
+        />
+      </SummaryGrid>
+      <SummaryGrid columns={3}>
+        <StatCard label="Receita equipe (realizado)" value={formatCurrency(totals.faturamentoFuncionarios)} />
+        <StatCard label="Receita dono/admin (realizado)" value={formatCurrency(totals.faturamentoAdminDono)} />
+        <StatCard label="Funcionarios ativos" value={totals.totalFuncionarios} />
       </SummaryGrid>
 
       <Toolbar>
-        <div className="grid w-full gap-2 sm:grid-cols-2 xl:grid-cols-6">
+        <div className="grid w-full gap-2 sm:grid-cols-2 xl:grid-cols-7">
           <label className="relative xl:col-span-2">
             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
@@ -320,6 +383,19 @@ export function AdminAttendancesPage() {
                   {service}
                 </option>
               ))}
+            </select>
+          </label>
+          <label className="relative">
+            <Wallet size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <select
+              className="input appearance-none !pl-11 !pr-10"
+              value={paymentFilter}
+              onChange={(e) => setPaymentFilter(e.target.value)}
+            >
+              <option value="all">Todos pagamentos</option>
+              <option value="pagos">Pagos</option>
+              <option value="pendentes">Pendentes</option>
             </select>
           </label>
           <label className="relative xl:col-span-2">
@@ -379,6 +455,33 @@ export function AdminAttendancesPage() {
               },
               { key: 'cliente_nome', label: 'Cliente' },
               {
+                key: 'pagamento',
+                label: 'Pagamento',
+                render: (row) => {
+                  const st = row.venda?.status_pagamento || 'pago'
+                  const label =
+                    st === 'pago'
+                      ? 'Pago'
+                      : st === 'pendente'
+                        ? 'Pendente'
+                        : st === 'parcial'
+                          ? 'Parcial'
+                          : st === 'cancelado'
+                            ? 'Cancelado'
+                            : st
+                  return (
+                    <div className="flex flex-col gap-1">
+                      <StatusBadge value={label} />
+                      {row.venda?.forma_pagamento ? (
+                        <span className="text-[10px] uppercase tracking-wide text-slate-500">
+                          {String(row.venda.forma_pagamento).replace(/_/g, ' ')}
+                        </span>
+                      ) : null}
+                    </div>
+                  )
+                },
+              },
+              {
                 key: 'servico',
                 label: 'Servico',
                 render: (row) => (
@@ -431,6 +534,29 @@ export function AdminAttendancesPage() {
                     {formatCurrency(row.valor_comissao)}
                   </span>
                 ),
+              },
+              {
+                key: 'acao',
+                label: 'Acao',
+                render: (row) => {
+                  const st = row.venda?.status_pagamento
+                  const canPay = row.venda_id && (st === 'pendente' || st === 'parcial')
+                  if (!canPay) {
+                    return <span className="text-xs text-slate-600">—</span>
+                  }
+                  return (
+                    <button
+                      type="button"
+                      className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-emerald-300 transition hover:bg-emerald-500/20"
+                      onClick={() => {
+                        setPayModal(row.venda_id)
+                        setPayForma('pix')
+                      }}
+                    >
+                      Marcar pago
+                    </button>
+                  )
+                },
               },
             ]}
             rows={paginatedRows}
@@ -487,6 +613,61 @@ export function AdminAttendancesPage() {
           </div>
         </>
       )}
+
+      {payModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-xl">
+            <h3 className="text-lg font-semibold text-slate-100">Confirmar recebimento</h3>
+            <p className="mt-2 text-sm text-slate-400">
+              Marcar esta venda como paga. A comissao do funcionario sera calculada somente apos esta confirmacao.
+            </p>
+            <label className="mt-4 block text-xs font-medium uppercase tracking-wide text-slate-400">
+              Forma de pagamento
+              <select
+                className="input mt-1 w-full"
+                value={payForma}
+                onChange={(e) => setPayForma(e.target.value)}
+              >
+                {PAYMENT_FORMS.map((f) => (
+                  <option key={f.value} value={f.value}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" className="btn-secondary" onClick={() => setPayModal(null)} disabled={markingPay}>
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                disabled={markingPay}
+                onClick={async () => {
+                  setMarkingPay(true)
+                  try {
+                    await markVendaPago({
+                      vendaId: payModal,
+                      formaPagamento: payForma,
+                      userId: profile?.id,
+                    })
+                    showToast({ tone: 'success', title: 'Pagamento registrado' })
+                    setPayModal(null)
+                    await reload()
+                  } catch (error) {
+                    captureAppError(error, { source: 'AdminAttendancesPage.markPago' })
+                    showToast({ tone: 'error', title: 'Falha ao registrar', description: error.message })
+                  } finally {
+                    setMarkingPay(false)
+                  }
+                }}
+              >
+                {markingPay ? 'Salvando...' : 'Confirmar pago'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }
