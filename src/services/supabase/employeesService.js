@@ -1,9 +1,11 @@
+import { createClient } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase'
 
 export async function listEmployees() {
   const { data, error } = await supabase
     .from('usuarios')
     .select('*')
+    .is('excluido_logico_em', null)
     .order('ativo', { ascending: false })
     .order('tipo', { ascending: false })
     .order('nome', { ascending: true })
@@ -23,4 +25,49 @@ export async function setEmployeeStatus({ id, ativo, excluirLogico = false }) {
     p_excluir_logico: excluirLogico,
   })
   if (error) throw error
+}
+
+function normalizeEmailLocalPart(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9._-]/g, '')
+    .replace(/\.{2,}/g, '.')
+    .replace(/^[._-]+|[._-]+$/g, '')
+}
+
+export async function createEmployeeAuthUser({
+  nome,
+  emailLocalPart,
+  password,
+  percentualComissao = 40,
+}) {
+  const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL ?? '').trim()
+  const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? '').trim()
+  const localPart = normalizeEmailLocalPart(emailLocalPart || nome)
+  if (!localPart) throw new Error('Informe um nome de usuario valido para o e-mail.')
+
+  const email = `${localPart}@barbeariawolf.com`
+  const isolatedClient = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  })
+
+  const { data, error } = await isolatedClient.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        nome,
+        tipo: 'funcionario',
+        tipo_remuneracao: 'comissionado',
+        recebe_comissao: true,
+        percentual_comissao: Number(percentualComissao || 40),
+        participa_fechamento_comissao: true,
+      },
+    },
+  })
+
+  if (error) throw error
+  return { email, userId: data.user?.id || null }
 }

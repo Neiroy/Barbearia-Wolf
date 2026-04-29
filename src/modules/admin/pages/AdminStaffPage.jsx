@@ -8,7 +8,7 @@ import { SectionCard } from '../../../components/ui/SectionCard'
 import { StatCard } from '../../../components/ui/StatCard'
 import { SummaryGrid } from '../../../components/ui/SummaryGrid'
 import { Toolbar } from '../../../components/ui/Toolbar'
-import { listEmployees, saveEmployee, setEmployeeStatus } from '../../../services/supabase'
+import { createEmployeeAuthUser, listEmployees, saveEmployee, setEmployeeStatus } from '../../../services/supabase'
 import { formatPercentInput, parsePercentInput } from '../../../utils/formatters'
 import { useToast } from '../../../context/ToastContext'
 import { captureAppError } from '../../../lib/observability'
@@ -27,10 +27,17 @@ export function AdminStaffPage() {
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [creating, setCreating] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('todos')
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
+  const [createForm, setCreateForm] = useState({
+    nome: '',
+    emailLocalPart: '',
+    senha: '',
+    percentualComissao: '40,0',
+  })
 
   async function reload() {
     setLoading(true)
@@ -106,6 +113,102 @@ export function AdminStaffPage() {
         <StatCard label="Ativos" value={kpis.ativos} hint="Podem acessar e lancar atendimentos" />
         <StatCard label="Inativos" value={kpis.inativos} hint="Bloqueados sem perder historico" />
       </SummaryGrid>
+
+      <SectionCard
+        title="Novo funcionario"
+        subtitle="Cria login no Supabase Auth e perfil no sistema automaticamente."
+      >
+        <form
+          className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"
+          onSubmit={async (event) => {
+            event.preventDefault()
+            setCreating(true)
+            setFeedback('')
+            setError('')
+            try {
+              const parsedPercentual = parsePercentInput(createForm.percentualComissao)
+              const result = await createEmployeeAuthUser({
+                nome: createForm.nome.trim(),
+                emailLocalPart: createForm.emailLocalPart.trim(),
+                password: createForm.senha,
+                percentualComissao: parsedPercentual,
+              })
+              await reload()
+              setCreateForm({ nome: '', emailLocalPart: '', senha: '', percentualComissao: '40,0' })
+              setFeedback(`Funcionario criado com sucesso: ${result.email}`)
+              showToast({ tone: 'success', title: 'Funcionario criado', description: result.email })
+            } catch (createError) {
+              captureAppError(createError, { source: 'AdminStaffPage.createEmployee' })
+              setError(createError.message || 'Falha ao criar funcionario.')
+              showToast({ tone: 'error', title: 'Falha ao criar funcionario', description: createError.message || 'Tente novamente.' })
+            } finally {
+              setCreating(false)
+            }
+          }}
+        >
+          <FormField label="Nome">
+            <input
+              className="input"
+              required
+              value={createForm.nome}
+              onChange={(event) => setCreateForm((old) => ({ ...old, nome: event.target.value }))}
+              placeholder="Ex.: Wesley"
+            />
+          </FormField>
+          <FormField label="Usuario de e-mail">
+            <input
+              className="input"
+              required
+              value={createForm.emailLocalPart}
+              onChange={(event) => setCreateForm((old) => ({ ...old, emailLocalPart: event.target.value.toLowerCase() }))}
+              placeholder="Ex.: wesley"
+            />
+            <p className="mt-1 text-xs text-slate-400">@barbeariawolf.com</p>
+          </FormField>
+          <FormField label="Senha inicial">
+            <div className="flex gap-2">
+              <input
+                className="input"
+                type="text"
+                minLength={6}
+                required
+                value={createForm.senha}
+                onChange={(event) => setCreateForm((old) => ({ ...old, senha: event.target.value }))}
+                placeholder="Defina uma senha"
+              />
+              <button
+                className="btn-secondary whitespace-nowrap"
+                type="button"
+                onClick={() => {
+                  const raw = Math.random().toString(36).slice(-6) + Math.random().toString(36).slice(-4).toUpperCase()
+                  setCreateForm((old) => ({ ...old, senha: `${raw}!` }))
+                }}
+              >
+                Gerar
+              </button>
+            </div>
+          </FormField>
+          <FormField label="Comissao (%)">
+            <input
+              className="input"
+              type="text"
+              value={createForm.percentualComissao}
+              onChange={(event) =>
+                setCreateForm((old) => ({
+                  ...old,
+                  percentualComissao: formatPercentInput(event.target.value),
+                }))
+              }
+              placeholder="40,0"
+            />
+          </FormField>
+          <div className="flex items-end">
+            <button className="btn-primary w-full" type="submit" disabled={creating}>
+              {creating ? 'Criando...' : 'Criar funcionario'}
+            </button>
+          </div>
+        </form>
+      </SectionCard>
 
       <SectionCard title="Regra financeira por perfil" subtitle="Configure acesso e remuneracao de forma separada.">
         <form
@@ -388,8 +491,8 @@ export function AdminStaffPage() {
                               try {
                                 await setEmployeeStatus({ id: row.id, ativo: false, excluirLogico: true })
                                 await reload()
-                                setFeedback(`${row.nome} excluido logicamente com historico preservado.`)
-                                showToast({ tone: 'success', title: 'Funcionario excluido logicamente' })
+                                setFeedback(`${row.nome} removido do painel com historico preservado.`)
+                                showToast({ tone: 'success', title: 'Funcionario removido do painel' })
                               } catch (statusError) {
                                 setError(statusError.message || 'Falha ao excluir funcionario.')
                                 showToast({ tone: 'error', title: 'Falha ao excluir', description: statusError.message || 'Tente novamente.' })
