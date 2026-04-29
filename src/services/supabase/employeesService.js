@@ -27,6 +27,26 @@ export async function setEmployeeStatus({ id, ativo, excluirLogico = false }) {
   if (error) throw error
 }
 
+export async function reactivateEmployeeByEmail(email) {
+  const normalizedEmail = String(email || '').trim().toLowerCase()
+  if (!normalizedEmail) throw new Error('E-mail invalido para reativacao.')
+
+  const { data, error } = await supabase
+    .from('usuarios')
+    .update({
+      ativo: true,
+      desativado_em: null,
+      excluido_logico_em: null,
+    })
+    .eq('email', normalizedEmail)
+    .select('id, email')
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) throw new Error('Funcionario nao encontrado para reativacao.')
+  return data
+}
+
 function normalizeEmailLocalPart(value) {
   return String(value || '')
     .toLowerCase()
@@ -49,6 +69,23 @@ export async function createEmployeeAuthUser({
   if (!localPart) throw new Error('Informe um nome de usuario valido para o e-mail.')
 
   const email = `${localPart}@barbeariawolf.com`
+
+  const { data: existingUser, error: existingUserError } = await supabase
+    .from('usuarios')
+    .select('id, ativo, excluido_logico_em')
+    .eq('email', email)
+    .maybeSingle()
+
+  if (existingUserError) throw existingUserError
+
+  if (existingUser) {
+    const isInactive = existingUser.ativo === false || existingUser.excluido_logico_em != null
+    if (isInactive) {
+      throw new Error('Ja existe um funcionario com este e-mail (inativo). Reative o perfil existente.')
+    }
+    throw new Error('Ja existe um funcionario com este e-mail.')
+  }
+
   const isolatedClient = createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   })
@@ -94,6 +131,11 @@ export async function createEmployeeAuthUser({
     { onConflict: 'id' },
   )
 
-  if (upsertError) throw upsertError
+  if (upsertError) {
+    if (upsertError.code === '23505' || upsertError.message?.includes('usuarios_email_key')) {
+      throw new Error('Ja existe um funcionario com este e-mail.')
+    }
+    throw upsertError
+  }
   return { email, userId }
 }

@@ -8,7 +8,7 @@ import { SectionCard } from '../../../components/ui/SectionCard'
 import { StatCard } from '../../../components/ui/StatCard'
 import { SummaryGrid } from '../../../components/ui/SummaryGrid'
 import { Toolbar } from '../../../components/ui/Toolbar'
-import { createEmployeeAuthUser, listEmployees, saveEmployee, setEmployeeStatus } from '../../../services/supabase'
+import { createEmployeeAuthUser, listEmployees, reactivateEmployeeByEmail, saveEmployee, setEmployeeStatus } from '../../../services/supabase'
 import { formatPercentInput, parsePercentInput } from '../../../utils/formatters'
 import { useToast } from '../../../context/ToastContext'
 import { captureAppError } from '../../../lib/observability'
@@ -150,9 +150,40 @@ export function AdminStaffPage() {
               setFeedback(`Funcionario criado com sucesso: ${result.email}`)
               showToast({ tone: 'success', title: 'Funcionario criado', description: result.email })
             } catch (createError) {
+              const message = createError?.message || 'Falha ao criar funcionario.'
+              const shouldOfferReactivation = message.includes('(inativo)')
+
+              if (shouldOfferReactivation) {
+                const email = `${createForm.emailLocalPart.trim()}@barbeariawolf.com`
+                const okToReactivate = window.confirm(
+                  `Ja existe um funcionario inativo com o e-mail ${email}. Deseja reativar agora?`,
+                )
+
+                if (okToReactivate) {
+                  try {
+                    await reactivateEmployeeByEmail(email)
+                    await reload()
+                    setCreateForm({ nome: '', emailLocalPart: '', senha: '', percentualComissao: '40,0' })
+                    setEmailEditedManually(false)
+                    setFeedback(`Funcionario reativado com sucesso: ${email}`)
+                    showToast({ tone: 'success', title: 'Funcionario reativado', description: email })
+                    return
+                  } catch (reactivationError) {
+                    captureAppError(reactivationError, { source: 'AdminStaffPage.reactivateEmployeeByEmail' })
+                    setError(reactivationError.message || 'Falha ao reativar funcionario.')
+                    showToast({
+                      tone: 'error',
+                      title: 'Falha ao reativar funcionario',
+                      description: reactivationError.message || 'Tente novamente.',
+                    })
+                    return
+                  }
+                }
+              }
+
               captureAppError(createError, { source: 'AdminStaffPage.createEmployee' })
-              setError(createError.message || 'Falha ao criar funcionario.')
-              showToast({ tone: 'error', title: 'Falha ao criar funcionario', description: createError.message || 'Tente novamente.' })
+              setError(message)
+              showToast({ tone: 'error', title: 'Falha ao criar funcionario', description: message || 'Tente novamente.' })
             } finally {
               setCreating(false)
             }
