@@ -13,6 +13,16 @@ import { formatPercentInput, parsePercentInput } from '../../../utils/formatters
 import { useToast } from '../../../context/ToastContext'
 import { captureAppError } from '../../../lib/observability'
 
+function normalizeEmailLocalPart(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9._-]/g, '')
+    .replace(/\.{2,}/g, '.')
+    .replace(/^[._-]+|[._-]+$/g, '')
+}
+
 export function AdminStaffPage() {
   const { showToast } = useToast()
   const [rows, setRows] = useState([])
@@ -38,6 +48,7 @@ export function AdminStaffPage() {
     senha: '',
     percentualComissao: '40,0',
   })
+  const [emailEditedManually, setEmailEditedManually] = useState(false)
 
   async function reload() {
     setLoading(true)
@@ -135,6 +146,7 @@ export function AdminStaffPage() {
               })
               await reload()
               setCreateForm({ nome: '', emailLocalPart: '', senha: '', percentualComissao: '40,0' })
+              setEmailEditedManually(false)
               setFeedback(`Funcionario criado com sucesso: ${result.email}`)
               showToast({ tone: 'success', title: 'Funcionario criado', description: result.email })
             } catch (createError) {
@@ -151,8 +163,18 @@ export function AdminStaffPage() {
               className="input"
               required
               value={createForm.nome}
-              onChange={(event) => setCreateForm((old) => ({ ...old, nome: event.target.value }))}
-              placeholder="Ex.: Wesley"
+              onChange={(event) =>
+                setCreateForm((old) => {
+                  const nome = event.target.value
+                  const autoEmail = normalizeEmailLocalPart(nome)
+                  return {
+                    ...old,
+                    nome,
+                    emailLocalPart: emailEditedManually ? old.emailLocalPart : autoEmail,
+                  }
+                })
+              }
+              placeholder="Ex.: Gabriel"
             />
           </FormField>
           <FormField label="Usuario de e-mail">
@@ -160,8 +182,11 @@ export function AdminStaffPage() {
               className="input"
               required
               value={createForm.emailLocalPart}
-              onChange={(event) => setCreateForm((old) => ({ ...old, emailLocalPart: event.target.value.toLowerCase() }))}
-              placeholder="Ex.: wesley"
+              onChange={(event) => {
+                setEmailEditedManually(true)
+                setCreateForm((old) => ({ ...old, emailLocalPart: normalizeEmailLocalPart(event.target.value) }))
+              }}
+              placeholder="Ex.: gabriel"
             />
             <p className="mt-1 text-xs text-slate-400">@barbeariawolf.com</p>
           </FormField>
