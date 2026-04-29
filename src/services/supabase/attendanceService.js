@@ -1,8 +1,26 @@
 import { supabase } from '../../lib/supabase'
 import dayjs from 'dayjs'
+import { getBarberWeekRange } from '../../utils/dateRanges'
 
 function normalizePaymentStatus(status) {
   return status === 'pago' ? 'pago' : 'aberto'
+}
+
+function isValidBarberWeek(row) {
+  const start = dayjs(row?.semana_inicio)
+  const end = dayjs(row?.semana_fim)
+  if (!start.isValid() || !end.isValid()) return false
+  const startIsTuesday = start.day() === 2
+  const endIsSaturday = end.day() === 6
+  const diffDays = end.startOf('day').diff(start.startOf('day'), 'day')
+  return startIsTuesday && endIsSaturday && diffDays === 4
+}
+
+function assertBarberWeekRange(startDate, endDate) {
+  const normalized = getBarberWeekRange(startDate)
+  if (normalized.startDate !== startDate || normalized.endDate !== endDate) {
+    throw new Error('Periodo semanal invalido. Use sempre o ciclo fixo de terca a sabado.')
+  }
 }
 
 export function mapWeeklySummaryToClosurePayload(summary, startDate, endDate, statusByUserId = {}) {
@@ -78,6 +96,7 @@ export async function saveAttendanceBatch(payload) {
 }
 
 export async function getWeeklySummaryByEmployee(startDate, endDate) {
+  assertBarberWeekRange(startDate, endDate)
   const { data, error } = await supabase.rpc('resumo_semanal_por_funcionario', {
     p_inicio: startDate,
     p_fim: endDate,
@@ -87,6 +106,7 @@ export async function getWeeklySummaryByEmployee(startDate, endDate) {
 }
 
 export async function syncWeeklyClosures(startDate, endDate) {
+  assertBarberWeekRange(startDate, endDate)
   const summary = await getWeeklySummaryByEmployee(startDate, endDate)
 
   const usuarioIds = summary.map((item) => item.usuario_id).filter(Boolean)
@@ -146,6 +166,7 @@ export async function syncWeeklyClosures(startDate, endDate) {
 }
 
 export async function listWeeklyClosures(startDate, endDate, options = {}) {
+  assertBarberWeekRange(startDate, endDate)
   const shouldSync = options.sync !== false
   if (shouldSync) await syncWeeklyClosures(startDate, endDate)
 
@@ -172,7 +193,7 @@ export async function listWeeklyClosuresHistory(limit = 52) {
     .order('created_at', { ascending: false })
     .limit(limit)
 
-  if (!error) return data || []
+  if (!error) return (data || []).filter(isValidBarberWeek)
 
   const fallback = await supabase
     .from('fechamentos_semanais')
@@ -184,7 +205,7 @@ export async function listWeeklyClosuresHistory(limit = 52) {
     .limit(limit)
 
   if (fallback.error) throw fallback.error
-  return fallback.data || []
+  return (fallback.data || []).filter(isValidBarberWeek)
 }
 
 export async function getPaidCommissionsByMonth(month) {
@@ -198,6 +219,7 @@ export async function getPaidCommissionsByMonth(month) {
 
   if (!preferred.error) {
     return (preferred.data || []).reduce((sum, row) => {
+      if (!isValidBarberWeek(row)) return sum
       const paidDate = row.pago_em ? dayjs(row.pago_em) : null
       const fallbackWeekDate = row.semana_fim ? dayjs(row.semana_fim) : dayjs(row.semana_inicio)
       const dateToCompare = paidDate?.isValid() ? paidDate : fallbackWeekDate
@@ -215,12 +237,114 @@ export async function getPaidCommissionsByMonth(month) {
 
   if (fallback.error) throw fallback.error
   return (fallback.data || []).reduce((sum, row) => {
+    if (!isValidBarberWeek(row)) return sum
     const weekDate = row.semana_fim ? dayjs(row.semana_fim) : dayjs(row.semana_inicio)
     const isInMonth =
       (weekDate.isAfter(monthStart) || weekDate.isSame(monthStart)) &&
       (weekDate.isBefore(monthEnd) || weekDate.isSame(monthEnd))
     return isInMonth ? sum + Number(row.total_comissao || 0) : sum
   }, 0)
+}
+
+export async function listCommissionPaymentsHistory(limit = 120) {
+  const { data, error } = await supabase
+    .from('comissoes_pagamentos')
+    .select(
+      'id, fechamento_semanal_id, usuario_id, semana_inicio, semana_fim, valor_pago, pago_em, marcado_por, status_registro, usuario:usuarios!comissoes_pagamentos_usuario_id_fkey(nome), marcado_por_usuario:usuarios!comissoes_pagamentos_marcado_por_fkey(nome)',
+    )
+    .order('pago_em', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return (data || []).filter(isValidBarberWeek)
+}
+
+export async function getCommissionMonthlySummary(month) {
+  const monthStart = dayjs(month).startOf('month')
+  const monthEnd = dayjs(month).endOf('month')
+
+  const [attendanceRows, closureRows] = await Promise.all([
+    listAttendances({
+      startDate: monthStart.format('YYYY-MM-DD'),
+      endDate: monthEnd.format('YYYY-MM-DD'),
+    }),
+    listWeeklyClosuresHistory(240),
+  ])
+
+  const generated = attendanceRows.reduce(
+    (sum, row) => (row.usuario?.recebe_comissao ? sum + Number(row.valor_comissao || 0) : sum),
+    0,
+  )
+
+  const paid = closureRows.reduce((sum, row) => {
+    if (!isValidBarberWeek(row)) return sum
+    if (row.status_pagamento !== 'pago') return sum
+    const baseDate = row.pago_em ? dayjs(row.pago_em) : dayjs(row.semana_fim)
+    const isInsideMonth =
+      (baseDate.isAfter(monthStart) || baseDate.isSame(monthStart, 'day')) &&
+      (baseDate.isBefore(monthEnd) || baseDate.isSame(monthEnd, 'day'))
+    return isInsideMonth ? sum + Number(row.total_comissao || 0) : sum
+  }, 0)
+
+  return {
+    gerada: generated,
+    paga: paid,
+    pendente: Math.max(generated - paid, 0),
+  }
+}
+
+export async function getCommissionByEmployeeInMonth(month) {
+  const monthStart = dayjs(month).startOf('month')
+  const monthEnd = dayjs(month).endOf('month')
+  const [attendanceRows, closureRows] = await Promise.all([
+    listAttendances({
+      startDate: monthStart.format('YYYY-MM-DD'),
+      endDate: monthEnd.format('YYYY-MM-DD'),
+    }),
+    listWeeklyClosuresHistory(260),
+  ])
+
+  const byEmployee = attendanceRows.reduce((acc, row) => {
+    if (!row.usuario?.recebe_comissao) return acc
+    const key = row.usuario_id
+    if (!acc[key]) {
+      acc[key] = {
+        usuario_id: key,
+        funcionario: row.usuario?.nome || 'Sem nome',
+        total_vendido: 0,
+        comissao_gerada: 0,
+        comissao_paga: 0,
+        ultimo_pagamento: null,
+      }
+    }
+    acc[key].total_vendido += Number(row.valor_servico || 0)
+    acc[key].comissao_gerada += Number(row.valor_comissao || 0)
+    return acc
+  }, {})
+
+  closureRows.forEach((row) => {
+    if (!isValidBarberWeek(row)) return
+    if (row.status_pagamento !== 'pago') return
+    if (!byEmployee[row.usuario_id]) return
+    const paidDate = row.pago_em ? dayjs(row.pago_em) : dayjs(row.semana_fim)
+    const isInsideMonth =
+      (paidDate.isAfter(monthStart) || paidDate.isSame(monthStart, 'day')) &&
+      (paidDate.isBefore(monthEnd) || paidDate.isSame(monthEnd, 'day'))
+    if (!isInsideMonth) return
+    byEmployee[row.usuario_id].comissao_paga += Number(row.total_comissao || 0)
+    if (
+      !byEmployee[row.usuario_id].ultimo_pagamento ||
+      dayjs(byEmployee[row.usuario_id].ultimo_pagamento).isBefore(paidDate)
+    ) {
+      byEmployee[row.usuario_id].ultimo_pagamento = paidDate.toISOString()
+    }
+  })
+
+  return Object.values(byEmployee)
+    .map((row) => ({
+      ...row,
+      comissao_pendente: Math.max(row.comissao_gerada - row.comissao_paga, 0),
+    }))
+    .sort((a, b) => b.comissao_gerada - a.comissao_gerada)
 }
 
 export async function settlePastWeeklyClosures(referenceWeekStart, userId) {
@@ -259,18 +383,49 @@ export async function updateWeeklyClosureStatus(closureId, status, options = {})
     updates.fechado_por = null
   }
 
-  let { error } = await supabase
+  let { data, error } = await supabase
     .from('fechamentos_semanais')
     .update(updates)
     .eq('id', closureId)
+    .select('id, usuario_id, semana_inicio, semana_fim, total_comissao, pago_em')
+    .maybeSingle()
 
   if (error) {
     const fallback = await supabase
       .from('fechamentos_semanais')
       .update({ status_pagamento: normalizedStatus })
       .eq('id', closureId)
+      .select('id, usuario_id, semana_inicio, semana_fim, total_comissao, pago_em')
+      .maybeSingle()
     error = fallback.error
+    data = fallback.data
   }
 
   if (error) throw error
+
+  if (!data) return
+
+  if (normalizedStatus === 'pago') {
+    const { error: paymentError } = await supabase.from('comissoes_pagamentos').upsert(
+      {
+        fechamento_semanal_id: data.id,
+        usuario_id: data.usuario_id,
+        semana_inicio: data.semana_inicio,
+        semana_fim: data.semana_fim,
+        valor_pago: Number(data.total_comissao || 0),
+        pago_em: data.pago_em || new Date().toISOString(),
+        marcado_por: options.userId || null,
+        status_registro: 'pago',
+      },
+      { onConflict: 'fechamento_semanal_id' },
+    )
+    if (paymentError) throw paymentError
+    return
+  }
+
+  const { error: reopenError } = await supabase
+    .from('comissoes_pagamentos')
+    .update({ status_registro: 'reaberto' })
+    .eq('fechamento_semanal_id', data.id)
+  if (reopenError) throw reopenError
 }

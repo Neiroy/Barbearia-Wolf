@@ -13,7 +13,7 @@ import { Toolbar } from '../../../components/ui/Toolbar'
 import {
   calculateMonthlyFinancial,
   closeMonthSnapshot,
-  getPaidCommissionsByMonth,
+  getCommissionMonthlySummary,
   getMonthlyClosure,
   listAttendances,
   listMonthlyClosuresHistory,
@@ -46,7 +46,7 @@ export function AdminFinancePage() {
   const [editScope, setEditScope] = useState('mes')
   const [monthClosure, setMonthClosure] = useState(null)
   const [monthlyHistoryRows, setMonthlyHistoryRows] = useState([])
-  const [paidCommissions, setPaidCommissions] = useState(0)
+  const [commissionSummary, setCommissionSummary] = useState({ gerada: 0, paga: 0, pendente: 0 })
   const [lastSyncAt, setLastSyncAt] = useState(null)
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
@@ -58,18 +58,18 @@ export function AdminFinancePage() {
     try {
       const startDate = dayjs(month).startOf('month').format('YYYY-MM-DD')
       const endDate = dayjs(month).endOf('month').format('YYYY-MM-DD')
-      const [attendanceRows, expenseRows, closureRow, historyRows, paidCommissionsTotal] = await Promise.all([
+      const [attendanceRows, expenseRows, closureRow, historyRows, commissionMonthly] = await Promise.all([
         listAttendances({ startDate, endDate }),
         listExpenses(month),
         getMonthlyClosure(month),
         listMonthlyClosuresHistory(36),
-        getPaidCommissionsByMonth(month),
+        getCommissionMonthlySummary(month),
       ])
       setAttendances(attendanceRows)
       setExpenses(expenseRows)
       setMonthClosure(closureRow)
       setMonthlyHistoryRows(historyRows)
-      setPaidCommissions(paidCommissionsTotal)
+      setCommissionSummary(commissionMonthly)
       setLastSyncAt(new Date())
     } catch (error) {
       captureAppError(error, { source: 'AdminFinancePage.reload', month })
@@ -102,7 +102,10 @@ export function AdminFinancePage() {
     }
   }, [month, reload])
 
-  const totals = useMemo(() => calculateMonthlyFinancial(attendances, expenses), [attendances, expenses])
+  const totals = useMemo(
+    () => calculateMonthlyFinancial(attendances, expenses, commissionSummary.paga),
+    [attendances, commissionSummary.paga, expenses],
+  )
   const displayedTotals = totals
   const collaboratorRows = useMemo(() => {
     const grouped = attendances.reduce((acc, row) => {
@@ -224,42 +227,26 @@ export function AdminFinancePage() {
         <CurrencyCard label="Faturamento funcionarios" value={formatCurrency(displayedTotals.faturamentoFuncionarios)} />
         <CurrencyCard label="Faturamento dono/admin" value={formatCurrency(displayedTotals.faturamentoAdminDono)} />
         <CurrencyCard
-          label="Comissoes pagas"
-          value={formatCurrency(paidCommissions)}
-          hint="Atualiza automaticamente apos marcar semana como paga"
+          label="Comissao gerada"
+          value={formatCurrency(commissionSummary.gerada)}
+          hint="Total acumulado por funcionarios comissionados"
+        />
+        <CurrencyCard
+          label="Comissao paga"
+          value={formatCurrency(commissionSummary.paga)}
+          hint="Pagamentos marcados no fechamento semanal"
+        />
+        <CurrencyCard
+          label="Comissao pendente"
+          value={formatCurrency(commissionSummary.pendente)}
+          hint="Aberto para pagamento no mes"
         />
         <CurrencyCard label="Gastos" value={formatCurrency(displayedTotals.totalGastos)} />
+      </SummaryGrid>
+      <SummaryGrid columns={4}>
         <CurrencyCard label="Lucro bruto" value={formatCurrency(displayedTotals.lucroBruto)} />
         <CurrencyCard label="Lucro liquido" value={formatCurrency(displayedTotals.lucroLiquido)} />
       </SummaryGrid>
-
-      <SectionCard
-        title="Historico mensal congelado"
-        subtitle="Meses fechados com snapshot financeiro salvo no fechamento."
-      >
-        <DataTable
-          columns={[
-            {
-              key: 'referencia_mes',
-              label: 'Mes/ano',
-              render: (row) => dayjs(row.referencia_mes).format('MM/YYYY'),
-            },
-            { key: 'total_entradas', label: 'Faturamento', render: (row) => formatCurrency(row.total_entradas) },
-            { key: 'total_comissoes', label: 'Comissoes', render: (row) => formatCurrency(row.total_comissoes) },
-            { key: 'total_gastos', label: 'Gastos', render: (row) => formatCurrency(row.total_gastos) },
-            { key: 'lucro_bruto', label: 'Lucro bruto', render: (row) => formatCurrency(row.lucro_bruto) },
-            { key: 'lucro_liquido', label: 'Lucro liquido', render: (row) => formatCurrency(row.lucro_liquido) },
-            {
-              key: 'fechado_em',
-              label: 'Fechado em',
-              render: (row) => (row.fechado_em ? dayjs(row.fechado_em).format('DD/MM/YYYY') : '-'),
-            },
-            { key: 'status_fechamento', label: 'Status' },
-          ]}
-          rows={monthlyHistoryRows}
-          empty="Nenhum fechamento mensal historico encontrado."
-        />
-      </SectionCard>
 
       <SectionCard
         title="Resumo por colaborador no mes"
@@ -287,6 +274,38 @@ export function AdminFinancePage() {
           ]}
           rows={collaboratorRows}
           empty="Sem atendimentos lancados para o mes selecionado."
+        />
+      </SectionCard>
+
+      <SectionCard
+        title="Histórico mensal congelado"
+        subtitle="Meses fechados com snapshot financeiro salvo no fechamento."
+      >
+        <DataTable
+          columns={[
+            {
+              key: 'referencia_mes',
+              label: 'Mes/ano',
+              render: (row) => dayjs(row.referencia_mes).format('MM/YYYY'),
+            },
+            { key: 'total_entradas', label: 'Faturamento', render: (row) => formatCurrency(row.total_entradas) },
+            { key: 'faturamento_equipe', label: 'Equipe', render: (row) => formatCurrency(row.faturamento_equipe || 0) },
+            { key: 'faturamento_admin', label: 'Admin/Dono', render: (row) => formatCurrency(row.faturamento_admin || 0) },
+            { key: 'total_comissoes', label: 'Comissoes', render: (row) => formatCurrency(row.total_comissoes) },
+            { key: 'comissao_paga', label: 'Comissao paga', render: (row) => formatCurrency(row.comissao_paga || 0) },
+            { key: 'comissao_pendente', label: 'Comissao pendente', render: (row) => formatCurrency(row.comissao_pendente || 0) },
+            { key: 'total_gastos', label: 'Gastos', render: (row) => formatCurrency(row.total_gastos) },
+            { key: 'lucro_bruto', label: 'Lucro bruto', render: (row) => formatCurrency(row.lucro_bruto) },
+            { key: 'lucro_liquido', label: 'Lucro liquido', render: (row) => formatCurrency(row.lucro_liquido) },
+            {
+              key: 'fechado_em',
+              label: 'Fechado em',
+              render: (row) => (row.fechado_em ? dayjs(row.fechado_em).format('DD/MM/YYYY') : '-'),
+            },
+            { key: 'status_fechamento', label: 'Status' },
+          ]}
+          rows={monthlyHistoryRows}
+          empty="Nenhum fechamento mensal historico encontrado."
         />
       </SectionCard>
 

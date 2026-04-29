@@ -1,5 +1,5 @@
 import dayjs from 'dayjs'
-import { listAttendances } from './attendanceService'
+import { getCommissionMonthlySummary, listAttendances } from './attendanceService'
 import { listExpenses } from './expensesService'
 import { getBarberWeekRange } from '../../utils/dateRanges'
 
@@ -40,7 +40,7 @@ export function calculateWeeklySummary(attendances) {
   )
 }
 
-export function calculateMonthlyFinancial(attendances, expenses) {
+export function calculateMonthlyFinancial(attendances, expenses, paidCommissions = null) {
   const totalEntradas = attendances.reduce((sum, row) => sum + Number(row.valor_servico), 0)
   const faturamentoFuncionarios = attendances.reduce(
     (sum, row) => (row.usuario?.recebe_comissao ? sum + Number(row.valor_servico) : sum),
@@ -54,6 +54,8 @@ export function calculateMonthlyFinancial(attendances, expenses) {
     (sum, row) => (row.usuario?.recebe_comissao ? sum + Number(row.valor_comissao) : sum),
     0,
   )
+  const comissaoPaga = Number(paidCommissions ?? 0)
+  const comissaoPendente = Math.max(totalComissoes - comissaoPaga, 0)
   const totalGastos = expenses.reduce((sum, row) => sum + Number(row.valor), 0)
   const lucroBruto = totalEntradas - totalComissoes
   const lucroLiquido = lucroBruto - totalGastos
@@ -63,6 +65,8 @@ export function calculateMonthlyFinancial(attendances, expenses) {
     faturamentoFuncionarios,
     faturamentoAdminDono,
     totalComissoes,
+    comissaoPaga,
+    comissaoPendente,
     totalGastos,
     lucroBruto,
     lucroLiquido,
@@ -75,15 +79,16 @@ export async function getAdminDashboardSnapshot() {
   const monthStart = dayjs().startOf('month').format('YYYY-MM-DD')
   const monthEnd = dayjs().endOf('month').format('YYYY-MM-DD')
 
-  const [todayRows, weekRows, monthRows, monthExpenses] = await Promise.all([
+  const [todayRows, weekRows, monthRows, monthExpenses, commissionSummary] = await Promise.all([
     listAttendances({ startDate: today, endDate: today }),
     listAttendances({ startDate: barberWeek.startDate, endDate: barberWeek.endDate }),
     listAttendances({ startDate: monthStart, endDate: monthEnd }),
     listExpenses(monthStart),
+    getCommissionMonthlySummary(monthStart),
   ])
 
   const groupedMonthAttendances = groupAttendancesByCombo(monthRows)
-  const monthly = calculateMonthlyFinancial(monthRows, monthExpenses)
+  const monthly = calculateMonthlyFinancial(monthRows, monthExpenses, commissionSummary.paga)
   const employeeTotals = weekRows.reduce((acc, row) => {
     const key = row.usuario?.nome || 'Sem nome'
     acc[key] = (acc[key] || 0) + Number(row.valor_servico)
@@ -105,6 +110,9 @@ export async function getAdminDashboardSnapshot() {
     monthRevenue: monthly.totalEntradas,
     monthExpenses: monthly.totalGastos,
     monthCommissions: monthly.totalComissoes,
+    monthCommissionsGenerated: monthly.totalComissoes,
+    monthCommissionsPaid: monthly.comissaoPaga,
+    monthCommissionsPending: monthly.comissaoPendente,
     monthEmployeeRevenue: monthly.faturamentoFuncionarios,
     monthOwnerRevenue: monthly.faturamentoAdminDono,
     monthNetProfit: monthly.lucroLiquido,

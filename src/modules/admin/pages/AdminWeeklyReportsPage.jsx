@@ -314,6 +314,24 @@ export function AdminWeeklyReportsPage() {
             >
               Ver atendimentos da semana
             </Link>
+            <Link
+              to="/admin/comissoes"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs text-slate-200 transition hover:border-sky-500/40 hover:text-sky-300"
+            >
+              Ir para comissoes
+            </Link>
+            <Link
+              to="/admin/historicos"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs text-slate-200 transition hover:border-sky-500/40 hover:text-sky-300"
+            >
+              Ver historicos completos
+            </Link>
+            <Link
+              to="/admin/producao"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs text-slate-200 transition hover:border-sky-500/40 hover:text-sky-300"
+            >
+              Ver producao
+            </Link>
             <button
               type="button"
               onClick={() => setBulkPayConfirmOpen(true)}
@@ -433,45 +451,7 @@ export function AdminWeeklyReportsPage() {
         </div>
       </SectionCard>
 
-      <SectionCard
-        title="Historico semanal congelado"
-        subtitle="Fechamentos anteriores com snapshot salvo no momento do pagamento."
-      >
-        {historyRows.length === 0 ? (
-          <EmptyState
-            title="Sem historico semanal"
-            description="Os fechamentos gerados aparecerao aqui para consulta."
-          />
-        ) : (
-          <DataTable
-            columns={[
-              { key: 'usuario', label: 'Funcionario', render: (row) => row.usuario?.nome || 'Sem nome' },
-              {
-                key: 'periodo',
-                label: 'Periodo',
-                render: (row) =>
-                  `${dayjs(row.semana_inicio).format('DD/MM/YYYY')} ate ${dayjs(row.semana_fim).format('DD/MM/YYYY')}`,
-              },
-              { key: 'total_servicos', label: 'Atendimentos' },
-              { key: 'total_vendido', label: 'Total vendido', render: (row) => formatCurrency(row.total_vendido) },
-              { key: 'total_comissao', label: 'Comissao', render: (row) => formatCurrency(row.total_comissao) },
-              {
-                key: 'pago_em',
-                label: 'Pago em',
-                render: (row) => (row.pago_em ? dayjs(row.pago_em).format('DD/MM/YYYY') : '-'),
-              },
-              {
-                key: 'status_pagamento',
-                label: 'Status',
-                render: (row) => <StatusBadge value={row.status_pagamento === 'aberto' ? 'pendente' : row.status_pagamento} />,
-              },
-            ]}
-            rows={historyRows}
-          />
-        )}
-      </SectionCard>
-
-      <SectionCard title="Fechamento por funcionario">
+      <SectionCard title="Fechamento por funcionário">
         {filteredRows.length === 0 ? (
           <EmptyState
             title="Nenhum fechamento encontrado"
@@ -533,8 +513,46 @@ export function AdminWeeklyReportsPage() {
       </SectionCard>
 
       <SectionCard
+        title="Histórico semanal congelado"
+        subtitle="Fechamentos anteriores com snapshot salvo no momento do pagamento. Para visao completa, acesse o modulo Historicos."
+      >
+        {historyRows.length === 0 ? (
+          <EmptyState
+            title="Sem historico semanal"
+            description="Os fechamentos gerados aparecerao aqui para consulta."
+          />
+        ) : (
+          <DataTable
+            columns={[
+              { key: 'usuario', label: 'Funcionario', render: (row) => row.usuario?.nome || 'Sem nome' },
+              {
+                key: 'periodo',
+                label: 'Periodo',
+                render: (row) =>
+                  `${dayjs(row.semana_inicio).format('DD/MM/YYYY')} ate ${dayjs(row.semana_fim).format('DD/MM/YYYY')}`,
+              },
+              { key: 'total_servicos', label: 'Atendimentos' },
+              { key: 'total_vendido', label: 'Total vendido', render: (row) => formatCurrency(row.total_vendido) },
+              { key: 'total_comissao', label: 'Comissao', render: (row) => formatCurrency(row.total_comissao) },
+              {
+                key: 'pago_em',
+                label: 'Pago em',
+                render: (row) => (row.pago_em ? dayjs(row.pago_em).format('DD/MM/YYYY') : '-'),
+              },
+              {
+                key: 'status_pagamento',
+                label: 'Status',
+                render: (row) => <StatusBadge value={row.status_pagamento === 'aberto' ? 'pendente' : row.status_pagamento} />,
+              },
+            ]}
+            rows={historyRows.slice(0, 25)}
+          />
+        )}
+      </SectionCard>
+
+      <SectionCard
         title="Producao do dono/admin"
-        subtitle="Atendimentos operacionais fora da folha de comissao da equipe."
+        subtitle="Atendimentos operacionais fora da folha de comissao da equipe. Analise detalhada no modulo Producao."
       >
         {ownerProductionRows.length === 0 ? (
           <EmptyState

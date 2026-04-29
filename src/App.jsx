@@ -38,6 +38,21 @@ const AdminFinancePage = lazy(() =>
     default: module.AdminFinancePage,
   })),
 )
+const AdminCommissionsPage = lazy(() =>
+  import('./modules/admin/pages/AdminCommissionsPage.jsx').then((module) => ({
+    default: module.AdminCommissionsPage,
+  })),
+)
+const AdminProductionPage = lazy(() =>
+  import('./modules/admin/pages/AdminProductionPage.jsx').then((module) => ({
+    default: module.AdminProductionPage,
+  })),
+)
+const AdminHistoriesPage = lazy(() =>
+  import('./modules/admin/pages/AdminHistoriesPage.jsx').then((module) => ({
+    default: module.AdminHistoriesPage,
+  })),
+)
 const EmployeeDashboardPage = lazy(() =>
   import('./modules/employee/pages/EmployeeDashboardPage.jsx').then((module) => ({
     default: module.EmployeeDashboardPage,
@@ -157,6 +172,30 @@ function App() {
             element={
               <LazyPage>
                 <AdminFinancePage />
+              </LazyPage>
+            }
+          />
+          <Route
+            path="comissoes"
+            element={
+              <LazyPage>
+                <AdminCommissionsPage />
+              </LazyPage>
+            }
+          />
+          <Route
+            path="producao"
+            element={
+              <LazyPage>
+                <AdminProductionPage />
+              </LazyPage>
+            }
+          />
+          <Route
+            path="historicos"
+            element={
+              <LazyPage>
+                <AdminHistoriesPage />
               </LazyPage>
             }
           />

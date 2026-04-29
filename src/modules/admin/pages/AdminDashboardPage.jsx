@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
-import { BadgeDollarSign, CalendarCheck2, Download, Landmark, TrendingUp, Wallet } from 'lucide-react'
+import { BadgeDollarSign, CalendarCheck2, Download, Landmark, TrendingUp, Users, Wallet } from 'lucide-react'
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { PageHeader } from '../../../components/ui/PageHeader'
 import { StatCard } from '../../../components/ui/StatCard'
-import { SummaryGrid } from '../../../components/ui/SummaryGrid'
+import { CurrencyCard, SummaryGrid } from '../../../components/ui/SummaryGrid'
 import { SectionCard } from '../../../components/ui/SectionCard'
 import { DataTable } from '../../../components/ui/DataTable'
 import { ErrorState, LoadingState } from '../../../components/ui/FeedbackStates'
 import { PrimaryKpiCard } from '../components/PrimaryKpiCard'
 import { QuickActionLinks } from '../components/QuickActionLinks'
-import { getAdminDashboardSnapshot, groupAttendancesByCombo, listAttendances, listExpenses } from '../../../services/supabase'
+import { getAdminDashboardSnapshot, groupAttendancesByCombo, listAttendances, listExpenses, listWeeklyClosures } from '../../../services/supabase'
+import { getBarberWeekRange } from '../../../utils/dateRanges'
 import { formatCurrency, formatDateTime } from '../../../utils/formatters'
 
 const expenseColorMap = {
@@ -25,11 +26,13 @@ const expenseColorMap = {
 export function AdminDashboardPage() {
   const [snapshot, setSnapshot] = useState(null)
   const [monthAttendances, setMonthAttendances] = useState([])
+  const [weekClosures, setWeekClosures] = useState([])
   const [recentAttendances, setRecentAttendances] = useState([])
   const [monthExpenses, setMonthExpenses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [expandedCombos, setExpandedCombos] = useState({})
+  const currentWeekRange = useMemo(() => getBarberWeekRange(), [])
 
   useEffect(() => {
     async function load() {
@@ -39,10 +42,11 @@ export function AdminDashboardPage() {
         const startDate = dayjs().startOf('month').format('YYYY-MM-DD')
         const endDate = dayjs().endOf('month').format('YYYY-MM-DD')
 
-        const [dashboardSnapshot, attendances, expenses] = await Promise.all([
+        const [dashboardSnapshot, attendances, expenses, weeklyRows] = await Promise.all([
           getAdminDashboardSnapshot(),
           listAttendances({ startDate, endDate }),
           listExpenses(startDate),
+          listWeeklyClosures(currentWeekRange.startDate, currentWeekRange.endDate, { sync: true }),
         ])
         const groupedAttendances = groupAttendancesByCombo(attendances).map((group) => {
           const matchingRows = attendances.filter((row) => {
@@ -67,6 +71,7 @@ export function AdminDashboardPage() {
         })
         setSnapshot(dashboardSnapshot)
         setMonthAttendances(attendances)
+        setWeekClosures(weeklyRows)
         setRecentAttendances(groupedAttendances.slice(0, 8))
         setMonthExpenses(expenses)
       } catch (loadError) {
@@ -77,7 +82,7 @@ export function AdminDashboardPage() {
     }
 
     load()
-  }, [])
+  }, [currentWeekRange.endDate, currentWeekRange.startDate])
 
   const weeklyRevenueData = useMemo(() => {
     const weeks = [1, 2, 3, 4, 5].map((week) => ({ name: `S${week}`, valor: 0 }))
@@ -101,6 +106,79 @@ export function AdminDashboardPage() {
       color: expenseColorMap[name] || '#94a3b8',
     }))
   }, [monthExpenses])
+
+  const revenueSourceData = useMemo(
+    () => [
+      {
+        name: 'Equipe',
+        valor: Number(snapshot?.monthEmployeeRevenue || 0),
+        color: '#0ea5e9',
+      },
+      {
+        name: 'Dono/Admin',
+        valor: Number(snapshot?.monthOwnerRevenue || 0),
+        color: '#6366f1',
+      },
+    ],
+    [snapshot],
+  )
+
+  const commissionByEmployeeData = useMemo(() => {
+    const grouped = monthAttendances.reduce((acc, row) => {
+      if (!row.usuario?.recebe_comissao) return acc
+      const name = row.usuario?.nome || 'Sem nome'
+      acc[name] = (acc[name] || 0) + Number(row.valor_comissao || 0)
+      return acc
+    }, {})
+    return Object.entries(grouped)
+      .map(([name, valor]) => ({ name, valor }))
+      .sort((a, b) => b.valor - a.valor)
+      .slice(0, 8)
+  }, [monthAttendances])
+
+  const weeklyClosingSummary = useMemo(() => {
+    const totals = weekClosures.reduce(
+      (acc, row) => {
+        if (!row.usuario?.recebe_comissao) return acc
+        const commission = Number(row.total_comissao || 0)
+        if (!commission) return acc
+        const status = row.status_pagamento || 'aberto'
+        acc.total += commission
+        if (status === 'pago') {
+          acc.paid += commission
+        } else {
+          acc.open += commission
+          acc.pendingEmployees.add(row.usuario?.nome || 'Sem nome')
+        }
+        return acc
+      },
+      { total: 0, paid: 0, open: 0, pendingEmployees: new Set() },
+    )
+
+    const pendingCount = totals.pendingEmployees.size
+    const statusText =
+      totals.total <= 0
+        ? 'Sem comissão em aberto na semana'
+        : pendingCount === 0
+          ? 'Fechamento em dia'
+          : `${pendingCount} funcionario(s) com pendencia`
+
+    return {
+      total: totals.total,
+      paid: totals.paid,
+      open: totals.open,
+      pendingCount,
+      statusText,
+    }
+  }, [weekClosures])
+
+  const revenueSourceShareData = useMemo(() => {
+    const total = revenueSourceData.reduce((sum, item) => sum + item.valor, 0)
+    return revenueSourceData.map((item) => ({
+      ...item,
+      percent: total > 0 ? (item.valor / total) * 100 : 0,
+    }))
+  }, [revenueSourceData])
 
   const quickActions = [
     { label: 'Novo atendimento', to: '/admin/atendimentos', icon: CalendarCheck2 },
@@ -128,46 +206,106 @@ export function AdminDashboardPage() {
         actions={<QuickActionLinks actions={quickActions} />}
       />
 
-      <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-6">
+      <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
         <PrimaryKpiCard
           title="Faturamento do mes"
           value={formatCurrency(snapshot.monthRevenue)}
           subtitle="Receita consolidada no periodo atual"
           icon={<BadgeDollarSign size={18} />}
+          variant="highlight"
         />
         <PrimaryKpiCard
           title="Lucro liquido do mes"
           value={formatCurrency(snapshot.monthNetProfit)}
           subtitle="Resultado apos gastos e comissoes"
           icon={<TrendingUp size={18} />}
+          variant="highlight"
+        />
+        <PrimaryKpiCard
+          title="Comissoes a pagar no mes"
+          value={formatCurrency(snapshot.monthCommissionsPending)}
+          subtitle="Valor pendente de pagamento no mes"
+          icon={<Landmark size={18} />}
+          variant="highlight"
         />
         <PrimaryKpiCard
           title="Gastos no mes"
           value={formatCurrency(snapshot.monthExpenses)}
           subtitle="Custos operacionais e despesas totais"
           icon={<Wallet size={18} />}
-        />
-        <PrimaryKpiCard
-          title="Comissoes no mes"
-          value={formatCurrency(snapshot.monthCommissions)}
-          subtitle="Somente equipe comissionada"
-          icon={<Landmark size={18} />}
-        />
-        <PrimaryKpiCard
-          title="Receita dos funcionarios"
-          value={formatCurrency(snapshot.monthEmployeeRevenue)}
-          subtitle="Faturamento da equipe comissionada"
-          icon={<TrendingUp size={18} />}
-        />
-        <PrimaryKpiCard
-          title="Receita do dono/admin"
-          value={formatCurrency(snapshot.monthOwnerRevenue)}
-          subtitle="Producao operacional sem custo de comissao"
-          icon={<BadgeDollarSign size={18} />}
+          variant="highlight"
         />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <SectionCard
+        title="Origem da receita"
+        subtitle="Composicao do faturamento mensal entre equipe comissionada e dono/admin."
+      >
+        <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
+          <SummaryGrid columns={3}>
+            <CurrencyCard
+              label="Receita gerada pela equipe"
+              value={formatCurrency(snapshot.monthEmployeeRevenue)}
+              hint="Servicos executados por funcionarios comissionados"
+            />
+            <CurrencyCard
+              label="Receita gerada pelo dono/admin"
+              value={formatCurrency(snapshot.monthOwnerRevenue)}
+              hint="Producao operacional sem custo de comissao"
+            />
+            <CurrencyCard
+              label="Participacao da equipe"
+              value={`${revenueSourceShareData[0]?.percent.toFixed(1) || 0}%`}
+              hint="Percentual da equipe no faturamento mensal"
+            />
+          </SummaryGrid>
+          <div className="h-64 rounded-xl border border-slate-800 bg-slate-950/60 p-2">
+            {revenueSourceData.some((item) => item.valor > 0) ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={revenueSourceData}
+                    dataKey="valor"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={88}
+                    innerRadius={52}
+                    paddingAngle={3}
+                  >
+                    {revenueSourceData.map((entry) => (
+                      <Cell key={entry.name} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#020617',
+                      border: '1px solid #334155',
+                      borderRadius: '12px',
+                    }}
+                    formatter={(value) => formatCurrency(value)}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-slate-500">
+                Sem dados de faturamento para o periodo.
+              </div>
+            )}
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Operacao do periodo" subtitle="Indicadores operacionais para leitura rapida da performance.">
+        <SummaryGrid columns={4}>
+          <StatCard label="Faturamento de hoje" value={formatCurrency(snapshot.todayRevenue)} />
+          <StatCard label="Faturamento da semana" value={formatCurrency(snapshot.weekRevenue)} />
+          <StatCard label="Ticket medio" value={formatCurrency(snapshot.ticketMedio)} />
+          <StatCard label="Atendimentos no mes" value={snapshot.totalAttendances} />
+        </SummaryGrid>
+      </SectionCard>
+
+      <div className="grid gap-4 2xl:grid-cols-3">
         <SectionCard title="Faturamento por semana do mes" subtitle="Leitura estrategica da evolucao semanal.">
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -189,34 +327,93 @@ export function AdminDashboardPage() {
 
         <SectionCard title="Gastos por categoria" subtitle="Distribuicao das despesas do mes.">
           <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={expenseByCategoryData}
-                  dataKey="valor"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={90}
-                  innerRadius={55}
-                  paddingAngle={2}
-                >
-                  {expenseByCategoryData.map((entry) => (
-                    <Cell key={entry.name} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#020617',
-                    border: '1px solid #334155',
-                    borderRadius: '12px',
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            {expenseByCategoryData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={expenseByCategoryData}
+                    dataKey="valor"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={90}
+                    innerRadius={55}
+                    paddingAngle={2}
+                  >
+                    {expenseByCategoryData.map((entry) => (
+                      <Cell key={entry.name} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#020617',
+                      border: '1px solid #334155',
+                      borderRadius: '12px',
+                    }}
+                    formatter={(value) => formatCurrency(value)}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-slate-500">
+                Nenhum gasto cadastrado no periodo.
+              </div>
+            )}
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Comissao por funcionario" subtitle="Quem mais concentra pagamento de comissao no mes.">
+          <div className="h-72">
+            {commissionByEmployeeData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={commissionByEmployeeData}>
+                  <XAxis dataKey="name" stroke="#94a3b8" tick={{ fontSize: 11 }} />
+                  <YAxis stroke="#94a3b8" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#020617',
+                      border: '1px solid #334155',
+                      borderRadius: '12px',
+                    }}
+                    formatter={(value) => formatCurrency(value)}
+                  />
+                  <Bar dataKey="valor" fill="#38bdf8" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-slate-500">
+                Sem comissoes registradas no periodo.
+              </div>
+            )}
           </div>
         </SectionCard>
       </div>
+
+      <SectionCard
+        title="Comissoes e fechamento"
+        subtitle={`Leitura da semana atual (${currentWeekRange.start.format('DD/MM')} - ${currentWeekRange.end.format('DD/MM')}).`}
+      >
+        <SummaryGrid columns={4}>
+          <StatCard label="Comissao gerada" value={formatCurrency(snapshot.monthCommissionsGenerated)} />
+          <StatCard label="Comissao paga" value={formatCurrency(snapshot.monthCommissionsPaid)} />
+          <StatCard label="Comissao pendente" value={formatCurrency(snapshot.monthCommissionsPending)} />
+          <StatCard label="Comissao da semana" value={formatCurrency(weeklyClosingSummary.total)} />
+        </SummaryGrid>
+        <SummaryGrid columns={4}>
+          <StatCard label="Comissao em aberto" value={formatCurrency(weeklyClosingSummary.open)} />
+          <StatCard label="Comissao ja paga" value={formatCurrency(weeklyClosingSummary.paid)} />
+          <StatCard label="Funcionarios pendentes" value={weeklyClosingSummary.pendingCount} hint={weeklyClosingSummary.statusText} />
+        </SummaryGrid>
+        <div className="mt-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-300">
+          <p className="inline-flex items-center gap-2">
+            <Users size={14} className="text-sky-300" />
+            <span>Status do fechamento semanal:</span>
+            <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-sky-300">
+              {weeklyClosingSummary.statusText}
+            </span>
+          </p>
+        </div>
+      </SectionCard>
 
       <SectionCard
         title="Atendimentos recentes"
@@ -268,19 +465,6 @@ export function AdminDashboardPage() {
           rows={recentAttendances}
           empty="Nenhuma movimentacao recente encontrada."
         />
-      </SectionCard>
-
-      <SectionCard title="Indicadores complementares" subtitle="Camada secundaria de apoio a gestao.">
-        <SummaryGrid columns={4}>
-          <StatCard label="Faturamento de hoje" value={formatCurrency(snapshot.todayRevenue)} />
-          <StatCard label="Faturamento da semana" value={formatCurrency(snapshot.weekRevenue)} />
-          <StatCard label="Ticket medio" value={formatCurrency(snapshot.ticketMedio)} />
-          <StatCard label="Atendimentos no mes" value={snapshot.totalAttendances} />
-          <StatCard label="Funcionario destaque" value={snapshot.highlightEmployee} />
-          <StatCard label="Servico mais realizado" value={snapshot.mostUsedService} />
-          <StatCard label="Atalho para fechamento" value="Ver agora" hint="Acesse o fechamento semanal" />
-          <StatCard label="Atalho para operacao" value="Novo lancamento" hint="Registre atendimentos rapidamente" />
-        </SummaryGrid>
       </SectionCard>
     </section>
   )

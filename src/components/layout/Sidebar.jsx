@@ -1,4 +1,4 @@
-import { BarChart3, CalendarCheck, ClipboardList, DollarSign, Home, LogOut, Scissors } from 'lucide-react'
+import { BarChart3, CalendarCheck, ClipboardList, DollarSign, History, Home, LogOut, Scissors, Wallet } from 'lucide-react'
 import { Link, NavLink } from 'react-router-dom'
 
 const adminSections = [
@@ -20,7 +20,12 @@ const adminSections = [
   },
   {
     title: 'Financeiro',
-    items: [{ to: '/admin/financeiro-mensal', label: 'Financeiro Mensal', icon: DollarSign }],
+    items: [
+      { to: '/admin/financeiro-mensal', label: 'Financeiro Mensal', icon: DollarSign },
+      { to: '/admin/comissoes', label: 'Comissoes', icon: Wallet },
+      { to: '/admin/producao', label: 'Producao', icon: BarChart3 },
+      { to: '/admin/historicos', label: 'Historicos', icon: History },
+    ],
   },
 ]
 

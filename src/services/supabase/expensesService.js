@@ -1,5 +1,6 @@
 import dayjs from 'dayjs'
 import { supabase } from '../../lib/supabase'
+import { getCommissionMonthlySummary } from './attendanceService'
 
 export function buildRecurringInsertPayload(templates, monthRows, monthStart) {
   const templateIds = (templates || []).map((item) => item.id)
@@ -124,10 +125,21 @@ export async function closeMonthSnapshot({ month, userId, attendances, expenses 
   const monthDate = dayjs(monthStart)
   const monthEnd = monthDate.endOf('month').format('YYYY-MM-DD')
   const totalEntradas = (attendances || []).reduce((sum, row) => sum + Number(row.valor_servico || 0), 0)
+  const faturamentoEquipe = (attendances || []).reduce(
+    (sum, row) => (row.usuario?.recebe_comissao ? sum + Number(row.valor_servico || 0) : sum),
+    0,
+  )
+  const faturamentoAdmin = (attendances || []).reduce(
+    (sum, row) => (!row.usuario?.recebe_comissao ? sum + Number(row.valor_servico || 0) : sum),
+    0,
+  )
   const totalComissoes = (attendances || []).reduce(
     (sum, row) => (row.usuario?.recebe_comissao ? sum + Number(row.valor_comissao || 0) : sum),
     0,
   )
+  const commissionSummary = await getCommissionMonthlySummary(monthStart)
+  const comissaoPaga = Number(commissionSummary.paga || 0)
+  const comissaoPendente = Math.max(totalComissoes - comissaoPaga, 0)
   const totalGastos = (expenses || []).reduce((sum, row) => sum + Number(row.valor || 0), 0)
   const lucroBruto = totalEntradas - totalComissoes
   const lucroLiquido = lucroBruto - totalGastos
@@ -139,8 +151,12 @@ export async function closeMonthSnapshot({ month, userId, attendances, expenses 
     data_inicio: monthStart,
     data_fim: monthEnd,
     total_entradas: totalEntradas,
+    faturamento_equipe: faturamentoEquipe,
+    faturamento_admin: faturamentoAdmin,
     total_gastos: totalGastos,
     total_comissoes: totalComissoes,
+    comissao_paga: comissaoPaga,
+    comissao_pendente: comissaoPendente,
     lucro_bruto: lucroBruto,
     lucro_liquido: lucroLiquido,
     status_fechamento: 'fechado',

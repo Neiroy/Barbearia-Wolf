@@ -8,13 +8,14 @@ import { PageHeader } from '../../../components/ui/PageHeader'
 import { StatCard } from '../../../components/ui/StatCard'
 import { SummaryGrid } from '../../../components/ui/SummaryGrid'
 import { Toolbar } from '../../../components/ui/Toolbar'
-import { listAttendances } from '../../../services/supabase'
+import { listAttendances, listWeeklyClosuresHistory } from '../../../services/supabase'
 import { formatCurrency, formatDateTime } from '../../../utils/formatters'
 
 export function AdminAttendancesPage() {
   const [startDate, setStartDate] = useState(dayjs().startOf('month').format('YYYY-MM-DD'))
   const [endDate, setEndDate] = useState(dayjs().format('YYYY-MM-DD'))
   const [rows, setRows] = useState([])
+  const [weeklyHistoryRows, setWeeklyHistoryRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [expandedCombos, setExpandedCombos] = useState({})
   const [search, setSearch] = useState('')
@@ -28,7 +29,12 @@ export function AdminAttendancesPage() {
     async function loadAttendances() {
       setLoading(true)
       try {
-        setRows(await listAttendances({ startDate, endDate }))
+        const [attendanceRows, weeklyRows] = await Promise.all([
+          listAttendances({ startDate, endDate }),
+          listWeeklyClosuresHistory(260),
+        ])
+        setRows(attendanceRows)
+        setWeeklyHistoryRows(weeklyRows)
       } finally {
         setLoading(false)
       }
@@ -115,18 +121,26 @@ export function AdminAttendancesPage() {
       (sum, row) => (!row.usuario?.recebe_comissao ? sum + Number(row.valor_servico) : sum),
       0,
     )
-    const ticketMedio = totalAtendimentos ? totalVendido / totalAtendimentos : 0
+    const periodStart = dayjs(startDate).startOf('day')
+    const periodEnd = dayjs(endDate).endOf('day')
+    const comissaoPendente = (weeklyHistoryRows || []).reduce((sum, row) => {
+      if ((row.status_pagamento || 'aberto') === 'pago') return sum
+      const weekStart = dayjs(row.semana_inicio).startOf('day')
+      const weekEnd = dayjs(row.semana_fim).endOf('day')
+      const overlapsPeriod = weekStart.isBefore(periodEnd) && weekEnd.isAfter(periodStart)
+      return overlapsPeriod ? sum + Number(row.total_comissao || 0) : sum
+    }, 0)
     const totalFuncionarios = new Set(filteredRows.map((row) => row.usuario?.nome).filter(Boolean)).size
     return {
       totalAtendimentos,
       totalVendido,
       totalComissao,
+      comissaoPendente,
       faturamentoFuncionarios,
       faturamentoAdminDono,
-      ticketMedio,
       totalFuncionarios,
     }
-  }, [filteredRows])
+  }, [endDate, filteredRows, startDate, weeklyHistoryRows])
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize))
   const paginatedRows = useMemo(() => {
@@ -236,8 +250,12 @@ export function AdminAttendancesPage() {
         }
       />
 
-      <SummaryGrid columns={7}>
-        <StatCard label="Total de atendimentos" value={totals.totalAtendimentos} hint="No periodo filtrado" />
+      <SummaryGrid columns={6}>
+        <StatCard
+          label="Total de atendimentos (individual ou combo)"
+          value={totals.totalAtendimentos}
+          hint="Contagem por atendimento agrupado no periodo filtrado"
+        />
         <StatCard label="Total vendido" value={formatCurrency(totals.totalVendido)} hint="Receita consolidada geral" />
         <StatCard
           label="Receita da equipe"
@@ -249,8 +267,7 @@ export function AdminAttendancesPage() {
           value={formatCurrency(totals.faturamentoAdminDono)}
           hint="Producao sem custo de comissao"
         />
-        <StatCard label="Comissao a pagar" value={formatCurrency(totals.totalComissao)} hint="Apenas equipe comissionada" />
-        <StatCard label="Ticket medio" value={formatCurrency(totals.ticketMedio)} hint="Media por atendimento" />
+        <StatCard label="Comissao a pagar" value={formatCurrency(totals.comissaoPendente)} hint="Somente comissao pendente no periodo" />
         <StatCard label="Funcionarios ativos" value={totals.totalFuncionarios} hint="Com atendimento no periodo" />
       </SummaryGrid>
 
