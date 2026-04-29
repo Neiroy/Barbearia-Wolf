@@ -130,7 +130,7 @@ export function AdminStaffPage() {
         subtitle="Cria login no Supabase Auth e perfil no sistema automaticamente."
       >
         <form
-          className="grid gap-3 sm:grid-cols-2 xl:grid-cols-12"
+          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6 xl:grid-cols-12"
           onSubmit={async (event) => {
             event.preventDefault()
             setCreating(true)
@@ -158,7 +158,7 @@ export function AdminStaffPage() {
             }
           }}
         >
-          <FormField label="Nome" className="xl:col-span-3">
+          <FormField label="Nome" className="lg:col-span-2 xl:col-span-3">
             <input
               className="input"
               required
@@ -177,7 +177,7 @@ export function AdminStaffPage() {
               placeholder="Ex.: Gabriel"
             />
           </FormField>
-          <FormField label="Usuario de e-mail" className="xl:col-span-3">
+          <FormField label="Usuario de e-mail" className="lg:col-span-2 xl:col-span-3">
             <input
               className="input"
               required
@@ -190,7 +190,7 @@ export function AdminStaffPage() {
             />
             <p className="mt-1 text-xs text-slate-400">@barbeariawolf.com</p>
           </FormField>
-          <FormField label="Senha inicial" className="xl:col-span-3">
+          <FormField label="Senha inicial" className="lg:col-span-2 xl:col-span-3">
             <div className="flex gap-2">
               <input
                 className="input"
@@ -213,7 +213,7 @@ export function AdminStaffPage() {
               </button>
             </div>
           </FormField>
-          <FormField label="Comissao (%)" className="xl:col-span-1">
+          <FormField label="Comissao (%)" className="lg:col-span-1 xl:col-span-1">
             <input
               className="input"
               type="text"
@@ -227,7 +227,8 @@ export function AdminStaffPage() {
               placeholder="40,0"
             />
           </FormField>
-          <div className="flex items-end xl:col-span-2">
+          <div className="lg:col-span-1 xl:col-span-2">
+            <span className="block text-xs font-medium uppercase tracking-wide text-transparent select-none">Acao</span>
             <button className="btn-primary h-10 w-full min-w-[180px]" type="submit" disabled={creating}>
               {creating ? 'Criando...' : 'Criar funcionario'}
             </button>

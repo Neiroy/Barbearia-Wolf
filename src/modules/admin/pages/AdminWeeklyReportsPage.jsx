@@ -380,8 +380,8 @@ export function AdminWeeklyReportsPage() {
       </SummaryGrid>
 
       <Toolbar>
-        <div className="grid w-full gap-2 md:grid-cols-2 xl:grid-cols-6">
-          <label className="relative xl:col-span-2">
+        <div className="grid w-full gap-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+          <label className="relative lg:col-span-2 xl:col-span-2">
             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               className="input !pl-11"
@@ -435,7 +435,7 @@ export function AdminWeeklyReportsPage() {
               <option value="pago">Pago</option>
             </select>
           </label>
-          <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300">
+          <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300 md:col-span-2 lg:col-span-4 xl:col-span-1">
             <Filter size={13} />
             Semana fixa (terca a sabado)
           </div>

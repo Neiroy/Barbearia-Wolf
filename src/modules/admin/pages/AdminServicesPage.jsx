@@ -108,7 +108,7 @@ export function AdminServicesPage() {
         subtitle="Cadastre e organize o catalogo com precos claros e ordem de exibicao."
       >
         <form
-          className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"
+          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6 xl:grid-cols-10"
           onSubmit={async (event) => {
             event.preventDefault()
             setSaving(true)
@@ -129,7 +129,7 @@ export function AdminServicesPage() {
             }
           }}
         >
-          <FormField label="Nome">
+          <FormField label="Nome" className="lg:col-span-2 xl:col-span-3">
             <input
               className="input"
               value={form.nome}
@@ -137,7 +137,7 @@ export function AdminServicesPage() {
               onChange={(event) => setForm((old) => ({ ...old, nome: event.target.value }))}
             />
           </FormField>
-          <FormField label="Valor base">
+          <FormField label="Valor base" className="lg:col-span-2 xl:col-span-2">
             <input
               className="input"
               type="text"
@@ -150,7 +150,7 @@ export function AdminServicesPage() {
               placeholder="0,00"
             />
           </FormField>
-          <FormField label="Ordem">
+          <FormField label="Ordem" className="lg:col-span-1 xl:col-span-1">
             <input
               className="input"
               type="number"
@@ -159,7 +159,7 @@ export function AdminServicesPage() {
               onChange={(event) => setForm((old) => ({ ...old, ordem: Number(event.target.value) }))}
             />
           </FormField>
-          <FormField label="Valor editavel">
+          <FormField label="Valor editavel" className="lg:col-span-1 xl:col-span-2">
             <div className="relative">
               <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <select
@@ -174,7 +174,8 @@ export function AdminServicesPage() {
               </select>
             </div>
           </FormField>
-          <div className="flex items-end gap-2">
+          <div className="lg:col-span-6 xl:col-span-2">
+            <span className="block text-xs font-medium uppercase tracking-wide text-transparent select-none">Acao</span>
             <button type="submit" className="btn-primary inline-flex w-full items-center justify-center gap-2" disabled={saving}>
               <PlusCircle size={15} />
               {saving ? 'Salvando...' : form.id ? 'Atualizar servico' : 'Salvar servico'}
@@ -190,8 +191,8 @@ export function AdminServicesPage() {
         subtitle="Busque, filtre e administre o catalogo com leitura rapida e acoes claras."
       >
         <Toolbar>
-          <div className="grid w-full gap-2 md:grid-cols-2 xl:grid-cols-4">
-            <label className="relative xl:col-span-2">
+          <div className="grid w-full gap-2 md:grid-cols-2 lg:grid-cols-4">
+            <label className="relative lg:col-span-2">
               <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
                 className="input !pl-11"
@@ -226,7 +227,7 @@ export function AdminServicesPage() {
                 <option value="valor_asc">Menor preco</option>
               </select>
             </label>
-            <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300">
+            <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300 md:col-span-2 lg:col-span-4">
               <Filter size={13} />
               Filtros ativos
             </div>

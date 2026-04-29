@@ -4,7 +4,7 @@ export function PrimaryKpiCard({ title, value, subtitle, icon, variant = 'defaul
   return (
     <article
       className={`group relative overflow-hidden rounded-2xl border border-slate-700/90 bg-slate-900/95 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] ${
-        isHighlight ? 'min-h-[170px] p-6 lg:p-7' : 'min-h-[150px] p-5'
+        isHighlight ? 'min-h-[160px] p-5 sm:min-h-[170px] sm:p-6 lg:p-7' : 'min-h-[145px] p-4 sm:min-h-[150px] sm:p-5'
       }`}
     >
       <div
@@ -19,7 +19,7 @@ export function PrimaryKpiCard({ title, value, subtitle, icon, variant = 'defaul
           <p className="whitespace-normal break-words text-xs uppercase tracking-[0.16em] text-slate-400">{title}</p>
           <p
             className={`mt-3 whitespace-normal break-all font-semibold leading-tight text-slate-100 ${
-              isHighlight ? 'text-3xl lg:text-4xl' : 'text-2xl lg:text-3xl'
+              isHighlight ? 'text-2xl sm:text-3xl lg:text-4xl' : 'text-xl sm:text-2xl lg:text-3xl'
             }`}
           >
             {value}

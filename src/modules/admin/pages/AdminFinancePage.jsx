@@ -479,8 +479,8 @@ export function AdminFinancePage() {
 
         <SectionCard title="Gastos lancados no periodo">
           <Toolbar>
-            <div className="grid w-full gap-2 md:grid-cols-2 xl:grid-cols-4">
-              <label className="relative min-w-0 xl:col-span-2">
+            <div className="grid w-full gap-2 md:grid-cols-2 lg:grid-cols-4">
+              <label className="relative min-w-0 lg:col-span-2">
                 <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
                   className="input !pl-11"
@@ -528,7 +528,7 @@ export function AdminFinancePage() {
                   <option value="valor_asc">Menor valor</option>
                 </select>
               </label>
-              <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300 md:col-span-2 xl:col-span-4">
+              <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300 md:col-span-2 lg:col-span-4">
                 <Filter size={13} />
                 Filtros ativos
               </div>

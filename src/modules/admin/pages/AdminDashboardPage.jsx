@@ -208,7 +208,7 @@ export function AdminDashboardPage() {
         actions={<QuickActionLinks actions={quickActions} />}
       />
 
-      <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
         <PrimaryKpiCard
           title="Realizado no mes"
           value={formatCurrency(snapshot.monthRevenue)}
@@ -238,7 +238,7 @@ export function AdminDashboardPage() {
           variant="highlight"
         />
       </div>
-      <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
         <PrimaryKpiCard
           title="Gastos no mes"
           value={formatCurrency(snapshot.monthExpenses)}
@@ -269,7 +269,7 @@ export function AdminDashboardPage() {
         title="Origem da receita"
         subtitle="Composicao do faturamento mensal entre equipe comissionada e dono/admin."
       >
-        <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
+        <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
           <SummaryGrid columns={3}>
             <CurrencyCard
               label="Receita gerada pela equipe"
@@ -339,7 +339,7 @@ export function AdminDashboardPage() {
         </SummaryGrid>
       </SectionCard>
 
-      <div className="grid gap-4 2xl:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
         <SectionCard title="Faturamento por semana do mes" subtitle="Leitura estrategica da evolucao semanal.">
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">

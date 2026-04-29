@@ -335,8 +335,8 @@ export function AdminAttendancesPage() {
       </SummaryGrid>
 
       <Toolbar>
-        <div className="grid w-full gap-2 sm:grid-cols-2 xl:grid-cols-7">
-          <label className="relative xl:col-span-2">
+        <div className="grid w-full gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+          <label className="relative lg:col-span-2 xl:col-span-2">
             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               className="input !pl-11"
@@ -398,7 +398,7 @@ export function AdminAttendancesPage() {
               <option value="pendentes">Pendentes</option>
             </select>
           </label>
-          <label className="relative xl:col-span-2">
+          <label className="relative lg:col-span-2 xl:col-span-2">
             <SlidersHorizontal size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <select className="input appearance-none !pl-11 !pr-10" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
@@ -410,7 +410,7 @@ export function AdminAttendancesPage() {
               <option value="comissao_asc">Comissao (menor)</option>
             </select>
           </label>
-          <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300">
+          <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300 sm:col-span-2 lg:col-span-4 xl:col-span-1">
             <Filter size={13} />
             Filtros ativos
           </div>

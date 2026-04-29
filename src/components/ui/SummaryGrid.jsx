@@ -1,10 +1,12 @@
 export function SummaryGrid({ children, columns = 3 }) {
   const className =
-    columns === 5
-      ? 'sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5'
-      : columns === 4
-        ? 'sm:grid-cols-2 xl:grid-cols-4'
-        : 'sm:grid-cols-2 xl:grid-cols-3'
+    columns === 6
+      ? 'sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6'
+      : columns === 5
+        ? 'sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5'
+        : columns === 4
+          ? 'sm:grid-cols-2 xl:grid-cols-4'
+          : 'sm:grid-cols-2 xl:grid-cols-3'
   return <div className={`grid gap-3 ${className}`}>{children}</div>
 }
 
