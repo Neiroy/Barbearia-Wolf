@@ -130,7 +130,7 @@ export function AdminStaffPage() {
         subtitle="Cria login no Supabase Auth e perfil no sistema automaticamente."
       >
         <form
-          className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"
+          className="grid gap-3 sm:grid-cols-2 xl:grid-cols-12"
           onSubmit={async (event) => {
             event.preventDefault()
             setCreating(true)
@@ -158,7 +158,7 @@ export function AdminStaffPage() {
             }
           }}
         >
-          <FormField label="Nome">
+          <FormField label="Nome" className="xl:col-span-3">
             <input
               className="input"
               required
@@ -177,7 +177,7 @@ export function AdminStaffPage() {
               placeholder="Ex.: Gabriel"
             />
           </FormField>
-          <FormField label="Usuario de e-mail">
+          <FormField label="Usuario de e-mail" className="xl:col-span-3">
             <input
               className="input"
               required
@@ -190,7 +190,7 @@ export function AdminStaffPage() {
             />
             <p className="mt-1 text-xs text-slate-400">@barbeariawolf.com</p>
           </FormField>
-          <FormField label="Senha inicial">
+          <FormField label="Senha inicial" className="xl:col-span-3">
             <div className="flex gap-2">
               <input
                 className="input"
@@ -213,7 +213,7 @@ export function AdminStaffPage() {
               </button>
             </div>
           </FormField>
-          <FormField label="Comissao (%)">
+          <FormField label="Comissao (%)" className="xl:col-span-1">
             <input
               className="input"
               type="text"
@@ -227,8 +227,8 @@ export function AdminStaffPage() {
               placeholder="40,0"
             />
           </FormField>
-          <div className="flex items-end">
-            <button className="btn-primary w-full" type="submit" disabled={creating}>
+          <div className="flex items-end xl:col-span-2">
+            <button className="btn-primary h-10 w-full min-w-[180px]" type="submit" disabled={creating}>
               {creating ? 'Criando...' : 'Criar funcionario'}
             </button>
           </div>
@@ -361,16 +361,17 @@ export function AdminStaffPage() {
                 onChange={(event) => setSearch(event.target.value)}
               />
             </label>
-            <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300">
+            <div className="relative inline-flex items-center rounded-lg border border-slate-700 bg-slate-950 px-2 text-xs text-slate-300">
               <Filter size={13} />
+              <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500" />
               <select
-                className="bg-transparent text-xs text-slate-300 outline-none"
+                className="h-9 appearance-none bg-transparent pl-2 pr-6 text-xs text-slate-300 outline-none"
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value)}
               >
-                <option value="todos">Todos</option>
-                <option value="ativos">Somente ativos</option>
-                <option value="inativos">Somente inativos</option>
+                <option className="bg-slate-900 text-slate-200" value="todos">Todos</option>
+                <option className="bg-slate-900 text-slate-200" value="ativos">Somente ativos</option>
+                <option className="bg-slate-900 text-slate-200" value="inativos">Somente inativos</option>
               </select>
             </div>
           </div>

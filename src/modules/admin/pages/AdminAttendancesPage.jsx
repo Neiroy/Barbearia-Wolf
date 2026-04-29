@@ -623,17 +623,20 @@ export function AdminAttendancesPage() {
             </p>
             <label className="mt-4 block text-xs font-medium uppercase tracking-wide text-slate-400">
               Forma de pagamento
-              <select
-                className="input mt-1 w-full"
-                value={payForma}
-                onChange={(e) => setPayForma(e.target.value)}
-              >
-                {PAYMENT_FORMS.map((f) => (
-                  <option key={f.value} value={f.value}>
-                    {f.label}
-                  </option>
-                ))}
-              </select>
+              <div className="relative mt-1">
+                <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <select
+                  className="input w-full appearance-none !pr-10"
+                  value={payForma}
+                  onChange={(e) => setPayForma(e.target.value)}
+                >
+                  {PAYMENT_FORMS.map((f) => (
+                    <option className="bg-slate-900 text-slate-100" key={f.value} value={f.value}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </label>
             <div className="mt-5 flex justify-end gap-2">
               <button type="button" className="btn-secondary" onClick={() => setPayModal(null)} disabled={markingPay}>

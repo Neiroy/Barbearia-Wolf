@@ -1,8 +1,8 @@
 import { ChevronDown } from 'lucide-react'
 
-export function FormField({ label, children, hint }) {
+export function FormField({ label, children, hint, className = '' }) {
   return (
-    <label className="space-y-1.5">
+    <label className={`space-y-1.5 ${className}`.trim()}>
       <span className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</span>
       {children}
       {hint ? <small className="text-xs text-slate-500">{hint}</small> : null}

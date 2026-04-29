@@ -69,5 +69,31 @@ export async function createEmployeeAuthUser({
   })
 
   if (error) throw error
-  return { email, userId: data.user?.id || null }
+
+  const userId = data.user?.id || null
+  if (!userId) {
+    throw new Error('Nao foi possivel obter o ID do usuario criado no Auth.')
+  }
+
+  // Fallback de consistencia: garante o perfil em public.usuarios
+  // mesmo quando o trigger auth.users -> public.usuarios nao rodou.
+  const { error: upsertError } = await supabase.from('usuarios').upsert(
+    {
+      id: userId,
+      nome: String(nome || '').trim(),
+      email,
+      tipo: 'funcionario',
+      tipo_remuneracao: 'comissionado',
+      recebe_comissao: true,
+      percentual_comissao: Number(percentualComissao || 40),
+      participa_fechamento_comissao: true,
+      ativo: true,
+      desativado_em: null,
+      excluido_logico_em: null,
+    },
+    { onConflict: 'id' },
+  )
+
+  if (upsertError) throw upsertError
+  return { email, userId }
 }
