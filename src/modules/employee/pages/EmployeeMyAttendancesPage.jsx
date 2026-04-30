@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import { CalendarRange, ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign, Clock3, Filter, Scissors, Search, SlidersHorizontal, Wallet } from 'lucide-react'
 import { useAuth } from '../../../context/AuthContext'
+import { useToast } from '../../../context/ToastContext'
 import { DataTable } from '../../../components/ui/DataTable'
 import { PageHeader } from '../../../components/ui/PageHeader'
 import { SectionCard } from '../../../components/ui/SectionCard'
@@ -10,12 +11,22 @@ import { SummaryGrid } from '../../../components/ui/SummaryGrid'
 import { Toolbar } from '../../../components/ui/Toolbar'
 import { EmptyState, LoadingState } from '../../../components/ui/FeedbackStates'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
-import { listAttendances } from '../../../services/supabase'
+import { captureAppError } from '../../../lib/observability'
+import { listAttendances, markVendaPago } from '../../../services/supabase'
 import { splitRowCashflow } from '../../../utils/financialCalculations'
 import { formatCurrency, formatDateTime } from '../../../utils/formatters'
 
+const PAYMENT_FORMS = [
+  { value: 'pix', label: 'PIX' },
+  { value: 'dinheiro', label: 'Dinheiro' },
+  { value: 'cartao_credito', label: 'Cartao credito' },
+  { value: 'cartao_debito', label: 'Cartao debito' },
+  { value: 'outros', label: 'Outros' },
+]
+
 export function EmployeeMyAttendancesPage() {
   const { profile } = useAuth()
+  const { showToast } = useToast()
   const receivesCommission = Boolean(profile?.recebe_comissao)
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
@@ -23,22 +34,31 @@ export function EmployeeMyAttendancesPage() {
   const [search, setSearch] = useState('')
   const [period, setPeriod] = useState('30d')
   const [serviceFilter, setServiceFilter] = useState('all')
+  const [paymentFilter, setPaymentFilter] = useState('all')
   const [sortOrder, setSortOrder] = useState('desc')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [payModal, setPayModal] = useState(null)
+  const [payForma, setPayForma] = useState('pix')
+  const [markingPay, setMarkingPay] = useState(false)
+
+  const reload = useCallback(async () => {
+    if (!profile?.id) return
+    setLoading(true)
+    try {
+      const ownRows = await listAttendances({ usuarioId: profile.id })
+      setRows(ownRows.filter((row) => row.usuario_id === profile.id))
+    } catch (error) {
+      captureAppError(error, { source: 'EmployeeMyAttendancesPage.reload' })
+      showToast({ tone: 'error', title: 'Erro ao carregar', description: error.message })
+    } finally {
+      setLoading(false)
+    }
+  }, [profile?.id, showToast])
 
   useEffect(() => {
-    if (!profile?.id) return
-    async function loadAttendances() {
-      setLoading(true)
-      try {
-        setRows(await listAttendances({ usuarioId: profile.id }))
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadAttendances()
-  }, [profile?.id])
+    reload()
+  }, [reload])
 
   const uniqueServices = useMemo(
     () => Array.from(new Set(rows.map((row) => row.servico?.nome).filter(Boolean))),
@@ -105,13 +125,22 @@ export function EmployeeMyAttendancesPage() {
         ? bySearch
         : bySearch.filter((row) => row.servicos.some((service) => service.nome === serviceFilter))
 
-    return [...byService].sort((a, b) => {
+    const byPayment =
+      paymentFilter === 'all'
+        ? byService
+        : byService.filter((row) => {
+            const st = row.venda?.status_pagamento || 'pago'
+            if (paymentFilter === 'pagos') return st === 'pago'
+            return st === 'pendente' || st === 'parcial'
+          })
+
+    return [...byPayment].sort((a, b) => {
       const timeA = new Date(a.data_hora).getTime()
       const timeB = new Date(b.data_hora).getTime()
       if (sortOrder === 'desc') return timeB - timeA
       return timeA - timeB
     })
-  }, [groupedRows, period, search, serviceFilter, sortOrder])
+  }, [groupedRows, period, search, serviceFilter, paymentFilter, sortOrder])
 
   const totals = useMemo(() => {
     const totalAtendimentos = filteredRows.length
@@ -147,7 +176,7 @@ export function EmployeeMyAttendancesPage() {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, period, serviceFilter, sortOrder, pageSize])
+  }, [search, period, serviceFilter, paymentFilter, sortOrder, pageSize])
 
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages)
@@ -200,7 +229,7 @@ export function EmployeeMyAttendancesPage() {
         subtitle="Filtre por periodo, cliente e servico para encontrar rapidamente o que precisa."
       >
         <Toolbar>
-          <div className="grid w-full gap-2 md:grid-cols-2 xl:grid-cols-5">
+          <div className="grid w-full gap-2 md:grid-cols-2 xl:grid-cols-6">
             <label className="relative xl:col-span-2">
               <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
@@ -240,6 +269,20 @@ export function EmployeeMyAttendancesPage() {
                     {service}
                   </option>
                 ))}
+              </select>
+            </label>
+
+            <label className="relative">
+              <Wallet size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <select
+                className="input appearance-none !pl-11 !pr-10"
+                value={paymentFilter}
+                onChange={(event) => setPaymentFilter(event.target.value)}
+              >
+                <option value="all">Todos pagamentos</option>
+                <option value="pagos">Pagos</option>
+                <option value="pendentes">Pendentes</option>
               </select>
             </label>
 
@@ -299,7 +342,16 @@ export function EmployeeMyAttendancesPage() {
                             : st === 'cancelado'
                               ? 'Cancelado'
                               : st
-                    return <StatusBadge value={label} />
+                    return (
+                      <div className="flex flex-col gap-1">
+                        <StatusBadge value={label} />
+                        {row.venda?.forma_pagamento ? (
+                          <span className="text-[10px] uppercase tracking-wide text-slate-500">
+                            {String(row.venda.forma_pagamento).replace(/_/g, ' ')}
+                          </span>
+                        ) : null}
+                      </div>
+                    )
                   },
                 },
                 {
@@ -354,6 +406,29 @@ export function EmployeeMyAttendancesPage() {
                       {receivesCommission ? formatCurrency(row.valor_comissao) : formatCurrency(0)}
                     </span>
                   ),
+                },
+                {
+                  key: 'acao',
+                  label: 'Acao',
+                  render: (row) => {
+                    const st = row.venda?.status_pagamento
+                    const canPay = row.venda_id && (st === 'pendente' || st === 'parcial')
+                    if (!canPay) {
+                      return <span className="text-xs text-slate-600">—</span>
+                    }
+                    return (
+                      <button
+                        type="button"
+                        className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-emerald-300 transition hover:bg-emerald-500/20"
+                        onClick={() => {
+                          setPayModal(row.venda_id)
+                          setPayForma('pix')
+                        }}
+                      >
+                        Marcar pago
+                      </button>
+                    )
+                  },
                 },
               ]}
               rows={paginatedRows}
@@ -430,6 +505,59 @@ export function EmployeeMyAttendancesPage() {
           </div>
         )}
       </SectionCard>
+      {payModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-xl">
+            <h3 className="text-lg font-semibold text-slate-100">Confirmar recebimento</h3>
+            <p className="mt-2 text-sm text-slate-400">
+              Marcar esta venda como paga. A comissao valida so e aplicada apos esta confirmacao.
+            </p>
+            <label className="mt-4 block text-xs font-medium uppercase tracking-wide text-slate-400">
+              Forma de pagamento
+              <div className="relative mt-1">
+                <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <select className="input w-full appearance-none !pr-10" value={payForma} onChange={(e) => setPayForma(e.target.value)}>
+                  {PAYMENT_FORMS.map((f) => (
+                    <option className="bg-slate-900 text-slate-100" key={f.value} value={f.value}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </label>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" className="btn-secondary" onClick={() => setPayModal(null)} disabled={markingPay}>
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                disabled={markingPay}
+                onClick={async () => {
+                  setMarkingPay(true)
+                  try {
+                    await markVendaPago({
+                      vendaId: payModal,
+                      formaPagamento: payForma,
+                      userId: profile?.id,
+                    })
+                    showToast({ tone: 'success', title: 'Pagamento registrado' })
+                    setPayModal(null)
+                    await reload()
+                  } catch (error) {
+                    captureAppError(error, { source: 'EmployeeMyAttendancesPage.markPago' })
+                    showToast({ tone: 'error', title: 'Falha ao registrar', description: error.message })
+                  } finally {
+                    setMarkingPay(false)
+                  }
+                }}
+              >
+                {markingPay ? 'Salvando...' : 'Confirmar pago'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

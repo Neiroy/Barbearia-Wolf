@@ -1,6 +1,19 @@
 import { Component } from 'react'
 import { captureAppError } from '../lib/observability'
 
+const CHUNK_RELOAD_GUARD_KEY = 'wolf:chunk-reload-attempted'
+
+function isChunkLoadError(error) {
+  const message = String(error?.message ?? '').toLowerCase()
+
+  return (
+    message.includes('failed to fetch dynamically imported module') ||
+    message.includes('dynamically imported module') ||
+    message.includes('chunkloaderror') ||
+    message.includes('loading chunk')
+  )
+}
+
 export class AppErrorBoundary extends Component {
   constructor(props) {
     super(props)
@@ -16,6 +29,20 @@ export class AppErrorBoundary extends Component {
 
   componentDidCatch(error) {
     captureAppError(error, { source: 'AppErrorBoundary' })
+
+    // Em deploys novos, o usuário pode estar com HTML antigo em cache apontando para chunks removidos.
+    // Fazemos 1 tentativa automática de refresh para buscar o manifesto mais recente.
+    if (isChunkLoadError(error)) {
+      const alreadyRetried = window.sessionStorage.getItem(CHUNK_RELOAD_GUARD_KEY) === '1'
+
+      if (!alreadyRetried) {
+        window.sessionStorage.setItem(CHUNK_RELOAD_GUARD_KEY, '1')
+        window.location.reload()
+        return
+      }
+    }
+
+    window.sessionStorage.removeItem(CHUNK_RELOAD_GUARD_KEY)
   }
 
   render() {
