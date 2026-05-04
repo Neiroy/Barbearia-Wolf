@@ -19,8 +19,8 @@ import { formatCurrency, formatDateTime } from '../../../utils/formatters'
 const PAYMENT_FORMS = [
   { value: 'pix', label: 'PIX' },
   { value: 'dinheiro', label: 'Dinheiro' },
-  { value: 'cartao_credito', label: 'Cartao credito' },
-  { value: 'cartao_debito', label: 'Cartao debito' },
+  { value: 'cartao_credito', label: 'Cartão de crédito' },
+  { value: 'cartao_debito', label: 'Cartão de débito' },
   { value: 'outros', label: 'Outros' },
 ]
 
@@ -230,22 +230,22 @@ export function AdminAttendancesPage() {
 
   function exportCsv() {
     const header = [
-      'Data/Hora',
-      'Funcionario',
-      'Tipo remuneracao',
-      'Participa fechamento comissao',
+      'Data/hora',
+      'Funcionário',
+      'Tipo remuneração',
+      'Participa fechamento comissão',
       'Cliente',
       'Status pagamento',
       'Forma pagamento',
-      'Servicos',
-      'Valor Total',
-      'Comissao valida',
+      'Serviços',
+      'Valor total',
+      'Comissão válida',
     ]
     const lines = filteredRows.map((row) => [
       formatDateTime(row.data_hora),
       row.usuario?.nome || '',
       row.usuario?.tipo_remuneracao || 'nao_informado',
-      row.usuario?.participa_fechamento_comissao ? 'sim' : 'nao',
+      row.usuario?.participa_fechamento_comissao ? 'sim' : 'não',
       row.cliente_nome || '',
       row.venda?.status_pagamento || 'pago',
       row.venda?.forma_pagamento || '',
@@ -268,7 +268,7 @@ export function AdminAttendancesPage() {
       <PageHeader
         eyebrow="Admin"
         title="Atendimentos"
-        description="Historico completo da operacao com filtros e visao consolidada."
+        description="Histórico completo da operação com filtros e visão consolidada."
         actions={
           <div className="flex w-full flex-wrap items-center justify-end gap-2 lg:w-auto">
             <div className="inline-flex items-center gap-2 rounded-full border border-sky-500/30 bg-sky-500/10 px-3 py-1.5 text-xs uppercase tracking-wide text-sky-300">
@@ -304,34 +304,34 @@ export function AdminAttendancesPage() {
         <StatCard
           label="Atendimentos (combos)"
           value={totals.totalAtendimentos}
-          hint="Agrupados no periodo filtrado"
+          hint="Agrupados no período filtrado"
         />
         <StatCard
           label="Total realizado"
           value={formatCurrency(totals.totalRealizado)}
-          hint="Servicos executados (inclui pendente de pagamento)"
+          hint="Serviços executados (inclui pendente de pagamento)"
         />
         <StatCard label="Total recebido" value={formatCurrency(totals.totalRecebido)} hint="Caixa confirmado (vendas pagas)" />
         <StatCard
           label="A receber (cliente)"
           value={formatCurrency(totals.totalPendenteCaixa)}
-          hint="Vendas ainda nao quitadas"
+          hint="Vendas ainda não quitadas"
         />
         <StatCard
-          label="Comissao valida (pago)"
+          label="Comissão válida (pago)"
           value={formatCurrency(totals.totalComissaoValida)}
-          hint="Sobre vendas ja pagas pelo cliente"
+          hint="Sobre vendas já pagas pelo cliente"
         />
         <StatCard
-          label="Comissao equipe pendente (fechamento)"
+          label="Comissão equipe pendente (fechamento)"
           value={formatCurrency(totals.comissaoFuncionarioPendenteFechamento)}
-          hint="Fechamento semanal de comissao ainda nao paga ao funcionario"
+          hint="Fechamento semanal de comissão ainda não paga ao funcionário"
         />
       </SummaryGrid>
       <SummaryGrid columns={3}>
         <StatCard label="Receita equipe (realizado)" value={formatCurrency(totals.faturamentoFuncionarios)} />
         <StatCard label="Receita dono/admin (realizado)" value={formatCurrency(totals.faturamentoAdminDono)} />
-        <StatCard label="Funcionarios ativos" value={totals.totalFuncionarios} />
+        <StatCard label="Funcionários ativos" value={totals.totalFuncionarios} />
       </SummaryGrid>
 
       <Toolbar>
@@ -340,7 +340,7 @@ export function AdminAttendancesPage() {
             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               className="input !pl-11"
-              placeholder="Buscar cliente, funcionario ou servico"
+              placeholder="Buscar cliente, funcionário ou serviço"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -365,7 +365,7 @@ export function AdminAttendancesPage() {
             <UserRound size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <select className="input appearance-none !pl-11 !pr-10" value={employeeFilter} onChange={(e) => setEmployeeFilter(e.target.value)}>
-              <option value="all">Todos funcionarios</option>
+              <option value="all">Todos os funcionários</option>
               {uniqueEmployees.map((employee) => (
                 <option key={employee} value={employee}>
                   {employee}
@@ -377,7 +377,7 @@ export function AdminAttendancesPage() {
             <Scissors size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <select className="input appearance-none !pl-11 !pr-10" value={serviceFilter} onChange={(e) => setServiceFilter(e.target.value)}>
-              <option value="all">Todos servicos</option>
+              <option value="all">Todos os serviços</option>
               {uniqueServices.map((service) => (
                 <option key={service} value={service}>
                   {service}
@@ -393,7 +393,7 @@ export function AdminAttendancesPage() {
               value={paymentFilter}
               onChange={(e) => setPaymentFilter(e.target.value)}
             >
-              <option value="all">Todos pagamentos</option>
+              <option value="all">Todos os pagamentos</option>
               <option value="pagos">Pagos</option>
               <option value="pendentes">Pendentes</option>
             </select>
@@ -406,8 +406,8 @@ export function AdminAttendancesPage() {
               <option value="asc">Data (mais antiga)</option>
               <option value="valor_desc">Valor (maior)</option>
               <option value="valor_asc">Valor (menor)</option>
-              <option value="comissao_desc">Comissao (maior)</option>
-              <option value="comissao_asc">Comissao (menor)</option>
+              <option value="comissao_desc">Comissão (maior)</option>
+              <option value="comissao_asc">Comissão (menor)</option>
             </select>
           </label>
           <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300 sm:col-span-2 lg:col-span-4 xl:col-span-1">
@@ -420,7 +420,7 @@ export function AdminAttendancesPage() {
       {filteredRows.length === 0 ? (
         <EmptyState
           title="Nenhum atendimento encontrado"
-          description="Ajuste os filtros para localizar movimentacoes no periodo selecionado."
+          description="Ajuste os filtros para localizar movimentações no período selecionado."
         />
       ) : (
         <>
@@ -428,7 +428,7 @@ export function AdminAttendancesPage() {
             columns={[
               {
                 key: 'data_hora',
-                label: 'Data/Hora',
+                label: 'Data/hora',
                 render: (row) => (
                   <span className="inline-flex items-center gap-2 text-slate-300">
                     <Clock3 size={13} className="text-slate-500" />
@@ -438,7 +438,7 @@ export function AdminAttendancesPage() {
               },
               {
                 key: 'usuario',
-                label: 'Funcionario',
+                label: 'Funcionário',
                 render: (row) => (
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center gap-2 font-medium text-slate-100">
@@ -447,7 +447,7 @@ export function AdminAttendancesPage() {
                     </span>
                     {!row.usuario?.recebe_comissao ? (
                       <span className="inline-flex rounded-full border border-sky-500/35 bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-300">
-                        Producao do dono/admin (sem comissao)
+                        Produção do dono/admin (sem comissão)
                       </span>
                     ) : null}
                   </div>
@@ -483,7 +483,7 @@ export function AdminAttendancesPage() {
               },
               {
                 key: 'servico',
-                label: 'Servico',
+                label: 'Serviço',
                 render: (row) => (
                   <div className="space-y-1">
                     {row.isCombo ? (
@@ -493,7 +493,7 @@ export function AdminAttendancesPage() {
                           className="inline-flex rounded-full border border-sky-500/30 bg-sky-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-sky-300 transition hover:border-sky-400/50 hover:bg-sky-500/20"
                           onClick={() => toggleComboDetails(row.id)}
                         >
-                          Combo ({row.servicos.length} servicos)
+                          Combo ({row.servicos.length} serviços)
                         </button>
                         {expandedCombos[row.id] ? (
                           <div className="rounded-lg border border-slate-700 bg-slate-950/80 p-2 text-[11px] text-slate-200">
@@ -527,7 +527,7 @@ export function AdminAttendancesPage() {
               },
               {
                 key: 'valor_comissao',
-                label: 'Comissao',
+                label: 'Comissão',
                 render: (row) => (
                   <span className="inline-flex items-center gap-1 font-semibold text-sky-300">
                     <Wallet size={13} />
@@ -537,7 +537,7 @@ export function AdminAttendancesPage() {
               },
               {
                 key: 'acao',
-                label: 'Acao',
+                label: 'Ação',
                 render: (row) => {
                   const st = row.venda?.status_pagamento
                   const canPay = row.venda_id && (st === 'pendente' || st === 'parcial')
@@ -569,7 +569,7 @@ export function AdminAttendancesPage() {
             <div className="flex flex-wrap items-center justify-end gap-2">
               <div className="inline-flex items-center gap-2 rounded-md border border-slate-700 px-2 py-1">
                 <label htmlFor="items-per-page-admin" className="text-xs text-slate-400">
-                  Itens/pagina
+                  Itens/página
                 </label>
                 <select
                   id="items-per-page-admin"
@@ -598,7 +598,7 @@ export function AdminAttendancesPage() {
                 Anterior
               </button>
               <span className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-300">
-                Pagina {currentPage} de {totalPages}
+                Página {currentPage} de {totalPages}
               </span>
               <button
                 type="button"
@@ -606,7 +606,7 @@ export function AdminAttendancesPage() {
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage((old) => Math.min(totalPages, old + 1))}
               >
-                Proxima
+                Próxima
                 <ChevronRight size={14} />
               </button>
             </div>
@@ -619,7 +619,7 @@ export function AdminAttendancesPage() {
           <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-xl">
             <h3 className="text-lg font-semibold text-slate-100">Confirmar recebimento</h3>
             <p className="mt-2 text-sm text-slate-400">
-              Marcar esta venda como paga. A comissao do funcionario sera calculada somente apos esta confirmacao.
+              Marcar esta venda como paga. A comissão do funcionário será calculada somente após esta confirmação.
             </p>
             <label className="mt-4 block text-xs font-medium uppercase tracking-wide text-slate-400">
               Forma de pagamento

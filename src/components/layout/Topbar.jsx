@@ -21,7 +21,7 @@ export function Topbar({ onMenuToggle }) {
           </button>
         ) : null}
         <div>
-        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Operacao diaria</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Operação diária</p>
         <p className="text-sm text-slate-300">{today}</p>
         </div>
       </div>

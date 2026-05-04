@@ -3,44 +3,44 @@ import { Link, NavLink } from 'react-router-dom'
 
 const adminSections = [
   {
-    title: 'Gestao',
+    title: 'Gestão',
     items: [
       { to: '/admin/dashboard', label: 'Dashboard', icon: Home },
-      { to: '/admin/funcionarios', label: 'Funcionarios', icon: ClipboardList },
-      { to: '/admin/servicos', label: 'Servicos', icon: Scissors },
+      { to: '/admin/funcionarios', label: 'Funcionários', icon: ClipboardList },
+      { to: '/admin/servicos', label: 'Serviços', icon: Scissors },
     ],
   },
   {
-    title: 'Operacao',
+    title: 'Operação',
     items: [
       { to: '/admin/atendimentos', label: 'Atendimentos', icon: CalendarCheck },
-      { to: '/admin/novo-atendimento', label: 'Lancar Atendimento', icon: CalendarCheck },
-      { to: '/admin/relatorios-semanais', label: 'Fechamento Semanal', icon: BarChart3 },
+      { to: '/admin/novo-atendimento', label: 'Lançar atendimento', icon: CalendarCheck },
+      { to: '/admin/relatorios-semanais', label: 'Fechamento semanal', icon: BarChart3 },
     ],
   },
   {
     title: 'Financeiro',
     items: [
-      { to: '/admin/financeiro-mensal', label: 'Financeiro Mensal', icon: DollarSign },
-      { to: '/admin/comissoes', label: 'Comissoes', icon: Wallet },
-      { to: '/admin/producao', label: 'Producao', icon: BarChart3 },
-      { to: '/admin/historicos', label: 'Historicos', icon: History },
+      { to: '/admin/financeiro-mensal', label: 'Financeiro mensal', icon: DollarSign },
+      { to: '/admin/comissoes', label: 'Comissões', icon: Wallet },
+      { to: '/admin/producao', label: 'Produção', icon: BarChart3 },
+      { to: '/admin/historicos', label: 'Históricos', icon: History },
     ],
   },
 ]
 
 const employeeSections = [
   {
-    title: 'Operacao',
+    title: 'Operação',
     items: [
       { to: '/funcionario/dashboard', label: 'Dashboard', icon: Home },
-      { to: '/funcionario/novo-atendimento', label: 'Novo Atendimento', icon: CalendarCheck },
-      { to: '/funcionario/meus-atendimentos', label: 'Meus Atendimentos', icon: ClipboardList },
+      { to: '/funcionario/novo-atendimento', label: 'Novo atendimento', icon: CalendarCheck },
+      { to: '/funcionario/meus-atendimentos', label: 'Meus atendimentos', icon: ClipboardList },
     ],
   },
   {
     title: 'Desempenho',
-    items: [{ to: '/funcionario/resumo-semanal', label: 'Resumo Semanal', icon: BarChart3 }],
+    items: [{ to: '/funcionario/resumo-semanal', label: 'Resumo semanal', icon: BarChart3 }],
   },
 ]
 
@@ -64,7 +64,7 @@ export function Sidebar({ role, profileName, onSignOut, onNavigate }) {
             <p className="text-[10px] uppercase tracking-[0.24em] text-sky-400">BarbeariaWolf</p>
             <h1 className="text-xl font-semibold leading-tight text-slate-100">Sistema Premium</h1>
             <p className="mt-0.5 text-[11px] text-slate-400">
-              {role === 'admin' ? 'Painel de gestao' : 'Painel do funcionario'}
+              {role === 'admin' ? 'Painel de gestão' : 'Painel do funcionário'}
             </p>
           </div>
         </div>

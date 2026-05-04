@@ -26,7 +26,7 @@ export function AdminProductionPage() {
         setAttendances(rows)
       } catch (error) {
         captureAppError(error, { source: 'AdminProductionPage.load' })
-        showToast({ tone: 'error', title: 'Falha ao carregar producao', description: error.message || 'Tente novamente.' })
+        showToast({ tone: 'error', title: 'Falha ao carregar produção', description: error.message || 'Tente novamente.' })
       }
     }
 
@@ -67,7 +67,7 @@ export function AdminProductionPage() {
 
   const serviceRows = useMemo(() => {
     const grouped = attendances.reduce((acc, row) => {
-      const key = row.servico?.nome || 'Sem servico'
+      const key = row.servico?.nome || 'Sem serviço'
       if (!acc[key]) {
         acc[key] = { servico: key, quantidade: 0, total_vendido: 0 }
       }
@@ -90,8 +90,8 @@ export function AdminProductionPage() {
     <section className="space-y-5 pb-6">
       <PageHeader
         eyebrow="Admin"
-        title="Producao"
-        description="Separacao operacional da producao da equipe e do admin/dono."
+        title="Produção"
+        description="Separação operacional da produção da equipe e do admin/dono."
         actions={
           <input
             type="month"
@@ -104,17 +104,17 @@ export function AdminProductionPage() {
 
       <SummaryGrid columns={4}>
         <StatCard label="Faturamento total" value={formatCurrency(summary.total)} />
-        <StatCard label="Producao da equipe" value={formatCurrency(summary.team)} />
-        <StatCard label="Producao do admin/dono" value={formatCurrency(summary.owner)} />
+        <StatCard label="Produção da equipe" value={formatCurrency(summary.team)} />
+        <StatCard label="Produção do admin/dono" value={formatCurrency(summary.owner)} />
         <StatCard
-          label="Atendimentos no mes (por servico individual)"
+          label="Atendimentos no mês (por serviço individual)"
           value={summary.totalAttendances}
-          hint="Cada servico registrado conta como 1 atendimento"
+          hint="Cada serviço registrado conta como 1 atendimento"
         />
       </SummaryGrid>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <SectionCard title="Composicao da producao" subtitle="Comparativo entre equipe e admin/dono no periodo.">
+        <SectionCard title="Composição da produção" subtitle="Comparativo entre equipe e admin/dono no período.">
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
@@ -134,27 +134,27 @@ export function AdminProductionPage() {
           </div>
         </SectionCard>
 
-        <SectionCard title="Ranking de funcionarios" subtitle="Desempenho por total vendido no mes.">
+        <SectionCard title="Ranking de funcionários" subtitle="Desempenho por total vendido no mês.">
           <DataTable
             columns={[
-              { key: 'funcionario', label: 'Funcionario' },
+              { key: 'funcionario', label: 'Funcionário' },
               { key: 'tipo', label: 'Tipo' },
               { key: 'atendimentos', label: 'Atendimentos' },
               { key: 'total_vendido', label: 'Total vendido', render: (row) => formatCurrency(row.total_vendido) },
             ]}
             rows={rankingRows}
-            empty="Sem dados de producao no periodo."
+            empty="Sem dados de produção no período."
           />
         </SectionCard>
       </div>
 
-      <SectionCard title="Servicos mais realizados" subtitle="Leitura de volume e receita por servico.">
+      <SectionCard title="Serviços mais realizados" subtitle="Leitura de volume e receita por serviço.">
         {serviceRows.length === 0 ? (
-          <EmptyState title="Sem servicos no periodo" description="Nenhum atendimento registrado para o mes selecionado." />
+          <EmptyState title="Sem serviços no período" description="Nenhum atendimento registrado para o mês selecionado." />
         ) : (
           <DataTable
             columns={[
-              { key: 'servico', label: 'Servico' },
+              { key: 'servico', label: 'Serviço' },
               { key: 'quantidade', label: 'Quantidade' },
               { key: 'total_vendido', label: 'Total vendido', render: (row) => formatCurrency(row.total_vendido) },
             ]}

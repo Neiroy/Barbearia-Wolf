@@ -77,7 +77,7 @@ const EmployeeWeeklySummaryPage = lazy(() =>
 function RouteLoadingFallback() {
   return (
     <div className="flex min-h-[40vh] items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/70 p-6 text-slate-300">
-      Carregando tela...
+      Carregando a tela...
     </div>
   )
 }

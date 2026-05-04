@@ -1,9 +1,9 @@
 export const EXPENSE_TYPES = [
   { value: 'fixo', label: 'Fixo' },
-  { value: 'variavel', label: 'Variavel' },
+  { value: 'variavel', label: 'Variável' },
   { value: 'produto', label: 'Produto' },
-  { value: 'manutencao', label: 'Manutencao' },
-  { value: 'operacao', label: 'Operacao' },
+  { value: 'manutencao', label: 'Manutenção' },
+  { value: 'operacao', label: 'Operação' },
   { value: 'outros', label: 'Outros' },
 ]
 

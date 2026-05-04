@@ -19,7 +19,7 @@ function isValidBarberWeek(row) {
 function assertBarberWeekRange(startDate, endDate) {
   const normalized = getBarberWeekRange(startDate)
   if (normalized.startDate !== startDate || normalized.endDate !== endDate) {
-    throw new Error('Periodo semanal invalido. Use sempre o ciclo fixo de terca a sabado.')
+    throw new Error('Período semanal inválido. Use sempre o ciclo fixo de terça a sábado.')
   }
 }
 

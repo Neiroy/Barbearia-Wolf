@@ -66,14 +66,14 @@ export function AdminServicesPage() {
     return { total, editaveis, combos, averagePrice, minPrice, maxPrice }
   }, [rows])
 
-  if (loading) return <LoadingState label="Carregando catalogo de servicos..." />
+  if (loading) return <LoadingState label="Carregando catálogo de serviços..." />
 
   return (
     <section className="space-y-6 pb-6">
       <PageHeader
         eyebrow="Admin"
-        title="Servicos"
-        description="Painel profissional para gerenciar o catalogo e a precificacao da barbearia."
+        title="Serviços"
+        description="Painel profissional para gerenciar o catálogo e a precificação da barbearia."
         actions={
           <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto">
             <button
@@ -82,7 +82,7 @@ export function AdminServicesPage() {
               onClick={() => setForm(initialForm)}
             >
               <PlusCircle size={15} />
-              Novo servico
+              Novo serviço
             </button>
             <button
               type="button"
@@ -90,22 +90,22 @@ export function AdminServicesPage() {
               onClick={reload}
             >
               <SlidersHorizontal size={15} />
-              Atualizar catalogo
+              Atualizar catálogo
             </button>
           </div>
         }
       />
 
       <SummaryGrid columns={4}>
-        <StatCard label="Total de servicos" value={kpis.total} hint="Servicos cadastrados no catalogo" />
-        <StatCard label="Preco medio" value={formatCurrency(kpis.averagePrice)} hint={`Faixa: ${formatCurrency(kpis.minPrice)} - ${formatCurrency(kpis.maxPrice)}`} />
-        <StatCard label="Servicos editaveis" value={kpis.editaveis} hint="Permitem valor personalizado" />
-        <StatCard label="Combos cadastrados" value={kpis.combos} hint="Servicos compostos identificados" />
+        <StatCard label="Total de serviços" value={kpis.total} hint="Serviços cadastrados no catálogo" />
+        <StatCard label="Preço médio" value={formatCurrency(kpis.averagePrice)} hint={`Faixa: ${formatCurrency(kpis.minPrice)} – ${formatCurrency(kpis.maxPrice)}`} />
+        <StatCard label="Serviços editáveis" value={kpis.editaveis} hint="Permitem valor personalizado" />
+        <StatCard label="Combos cadastrados" value={kpis.combos} hint="Serviços compostos identificados" />
       </SummaryGrid>
 
       <SectionCard
-        title={form.id ? 'Editar servico' : 'Novo servico'}
-        subtitle="Cadastre e organize o catalogo com precos claros e ordem de exibicao."
+        title={form.id ? 'Editar serviço' : 'Novo serviço'}
+        subtitle="Cadastre e organize o catálogo com preços claros e ordem de exibição."
       >
         <form
           className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6 xl:grid-cols-10"
@@ -117,12 +117,12 @@ export function AdminServicesPage() {
             try {
               await saveService({ ...form, valor: parseCurrencyInput(form.valor) })
               setForm(initialForm)
-              setFeedback('Servico salvo com sucesso no catalogo.')
+              setFeedback('Serviço salvo com sucesso no catálogo.')
               showToast({ tone: 'success', title: 'Serviço salvo', description: 'Cadastro atualizado no catálogo.' })
               await reload()
             } catch (submitError) {
               captureAppError(submitError, { source: 'AdminServicesPage.submit', serviceId: form.id || null })
-              setError(submitError.message || 'Falha ao salvar servico.')
+              setError(submitError.message || 'Falha ao salvar serviço.')
               showToast({ tone: 'error', title: 'Falha ao salvar serviço', description: submitError.message || 'Tente novamente.' })
             } finally {
               setSaving(false)
@@ -159,7 +159,7 @@ export function AdminServicesPage() {
               onChange={(event) => setForm((old) => ({ ...old, ordem: Number(event.target.value) }))}
             />
           </FormField>
-          <FormField label="Valor editavel" className="lg:col-span-1 xl:col-span-2">
+          <FormField label="Valor editável" className="lg:col-span-1 xl:col-span-2">
             <div className="relative">
               <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <select
@@ -169,16 +169,16 @@ export function AdminServicesPage() {
                   setForm((old) => ({ ...old, valor_editavel: event.target.value === 'true' }))
                 }
               >
-                <option value="false">Nao</option>
+                <option value="false">Não</option>
                 <option value="true">Sim</option>
               </select>
             </div>
           </FormField>
           <div className="lg:col-span-6 xl:col-span-2">
-            <span className="block text-xs font-medium uppercase tracking-wide text-transparent select-none">Acao</span>
+            <span className="block text-xs font-medium uppercase tracking-wide text-transparent select-none">Ação</span>
             <button type="submit" className="btn-primary inline-flex w-full items-center justify-center gap-2" disabled={saving}>
               <PlusCircle size={15} />
-              {saving ? 'Salvando...' : form.id ? 'Atualizar servico' : 'Salvar servico'}
+              {saving ? 'Salvando...' : form.id ? 'Atualizar serviço' : 'Salvar serviço'}
             </button>
           </div>
         </form>
@@ -187,8 +187,8 @@ export function AdminServicesPage() {
       </SectionCard>
 
       <SectionCard
-        title="Catalogo de servicos"
-        subtitle="Busque, filtre e administre o catalogo com leitura rapida e acoes claras."
+        title="Catálogo de serviços"
+        subtitle="Busque, filtre e administre o catálogo com leitura rápida e ações claras."
       >
         <Toolbar>
           <div className="grid w-full gap-2 md:grid-cols-2 lg:grid-cols-4">
@@ -196,7 +196,7 @@ export function AdminServicesPage() {
               <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
                 className="input !pl-11"
-                placeholder="Buscar por nome do servico"
+                placeholder="Buscar por nome do serviço"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
@@ -211,7 +211,7 @@ export function AdminServicesPage() {
                 onChange={(event) => setEditableFilter(event.target.value)}
               >
                 <option value="all">Todos os tipos</option>
-                <option value="editavel">Somente editaveis</option>
+                <option value="editavel">Somente editáveis</option>
                 <option value="fixo">Somente valor fixo</option>
               </select>
             </label>
@@ -223,8 +223,8 @@ export function AdminServicesPage() {
                 <option value="ordem">Ordenar por ordem</option>
                 <option value="nome_asc">Nome (A-Z)</option>
                 <option value="nome_desc">Nome (Z-A)</option>
-                <option value="valor_desc">Maior preco</option>
-                <option value="valor_asc">Menor preco</option>
+                <option value="valor_desc">Maior preço</option>
+                <option value="valor_asc">Menor preço</option>
               </select>
             </label>
             <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300 md:col-span-2 lg:col-span-4">
@@ -254,7 +254,7 @@ export function AdminServicesPage() {
                     ? 'border-sky-500/40 bg-sky-500/10 text-sky-300'
                     : 'border-slate-700 bg-slate-900 text-slate-300'
                 }`}>
-                  {row.valor_editavel ? 'Valor editavel' : 'Valor fixo'}
+                  {row.valor_editavel ? 'Valor editável' : 'Valor fixo'}
                 </span>
               </div>
             </div>
@@ -279,8 +279,8 @@ export function AdminServicesPage() {
         {filteredRows.length === 0 ? (
           <div className="mt-4">
             <EmptyState
-              title="Nenhum servico encontrado"
-              description="Ajuste os filtros ou cadastre um novo servico para compor o catalogo."
+              title="Nenhum serviço encontrado"
+              description="Ajuste os filtros ou cadastre um novo serviço para compor o catálogo."
             />
           </div>
         ) : null}
@@ -288,14 +288,14 @@ export function AdminServicesPage() {
 
       <ConfirmDialog
         open={Boolean(serviceToDelete)}
-        title="Excluir servico"
-        description={`Deseja remover ${serviceToDelete?.nome || 'este servico'}?`}
+        title="Excluir serviço"
+        description={`Deseja remover ${serviceToDelete?.nome || 'este serviço'}?`}
         onCancel={() => setServiceToDelete(null)}
         onConfirm={async () => {
           try {
             await deleteService(serviceToDelete.id)
             setServiceToDelete(null)
-            setFeedback('Servico excluido com sucesso.')
+            setFeedback('Serviço excluído com sucesso.')
             showToast({ tone: 'success', title: 'Serviço excluído' })
             reload()
           } catch (error) {

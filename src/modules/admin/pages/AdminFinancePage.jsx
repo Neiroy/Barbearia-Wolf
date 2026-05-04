@@ -171,7 +171,7 @@ export function AdminFinancePage() {
       <PageHeader
         eyebrow="Admin"
         title="Financeiro mensal"
-        description="Entradas, gastos, comissoes e resultado do mes."
+        description="Entradas, gastos, comissões e resultado do mês."
         actions={
           <div className="flex w-full flex-wrap items-center justify-end gap-2 lg:w-auto">
             <span className="inline-flex items-center rounded-md border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-emerald-300">
@@ -195,15 +195,15 @@ export function AdminFinancePage() {
                 onClick={async () => {
                   try {
                     await reopenMonthSnapshot(month)
-                    showToast({ tone: 'success', title: 'Mes reaberto para edicao' })
+                    showToast({ tone: 'success', title: 'Mês reaberto para edição' })
                     reload()
                   } catch (error) {
                     captureAppError(error, { source: 'AdminFinancePage.reopenMonth', month })
-                    showToast({ tone: 'error', title: 'Falha ao reabrir mes', description: error.message || 'Tente novamente.' })
+                    showToast({ tone: 'error', title: 'Falha ao reabrir mês', description: error.message || 'Tente novamente.' })
                   }
                 }}
               >
-                Reabrir mes
+                Reabrir mês
               </button>
             ) : (
               <button
@@ -212,15 +212,15 @@ export function AdminFinancePage() {
                 onClick={async () => {
                   try {
                     await closeMonthSnapshot({ month, userId: profile?.id, attendances, expenses })
-                    showToast({ tone: 'success', title: 'Mes fechado com sucesso' })
+                    showToast({ tone: 'success', title: 'Mês fechado com sucesso' })
                     reload()
                   } catch (error) {
                     captureAppError(error, { source: 'AdminFinancePage.closeMonth', month })
-                    showToast({ tone: 'error', title: 'Falha ao fechar mes', description: error.message || 'Tente novamente.' })
+                    showToast({ tone: 'error', title: 'Falha ao fechar mês', description: error.message || 'Tente novamente.' })
                   }
                 }}
               >
-                Fechar mes
+                Fechar mês
               </button>
             )}
           </div>
@@ -231,7 +231,7 @@ export function AdminFinancePage() {
         <CurrencyCard
           label="Total realizado"
           value={formatCurrency(displayedTotals.totalEntradas)}
-          hint="Servicos executados no mes (inclui pendentes de pagamento)"
+          hint="Serviços executados no mês (inclui pendentes de pagamento)"
         />
         <CurrencyCard
           label="Total recebido (caixa)"
@@ -241,35 +241,35 @@ export function AdminFinancePage() {
         <CurrencyCard
           label="Total pendente"
           value={formatCurrency(displayedTotals.totalPendenteReceber)}
-          hint="Ainda nao recebido da carteira de clientes"
+          hint="Ainda não recebido da carteira de clientes"
         />
-        <CurrencyCard label="Faturamento funcionarios (realizado)" value={formatCurrency(displayedTotals.faturamentoFuncionarios)} />
+        <CurrencyCard label="Faturamento funcionários (realizado)" value={formatCurrency(displayedTotals.faturamentoFuncionarios)} />
         <CurrencyCard label="Faturamento dono/admin (realizado)" value={formatCurrency(displayedTotals.faturamentoAdminDono)} />
         <CurrencyCard label="Gastos" value={formatCurrency(displayedTotals.totalGastos)} />
         <CurrencyCard
-          label="Comissao gerada (sobre pago)"
+          label="Comissão gerada (sobre pago)"
           value={formatCurrency(commissionSummary.gerada)}
-          hint="Somente vendas ja pagas pelo cliente"
+          hint="Somente vendas já pagas pelo cliente"
         />
       </SummaryGrid>
       <SummaryGrid columns={4}>
         <CurrencyCard
-          label="Comissao paga (funcionarios)"
+          label="Comissão paga (funcionários)"
           value={formatCurrency(commissionSummary.paga)}
           hint="Fechamento semanal marcado como pago"
         />
         <CurrencyCard
-          label="Comissao pendente (funcionarios)"
+          label="Comissão pendente (funcionários)"
           value={formatCurrency(commissionSummary.pendente)}
-          hint="A pagar aos funcionarios no mes"
+          hint="A pagar aos funcionários no mês"
         />
         <CurrencyCard label="Lucro bruto (sobre caixa)" value={formatCurrency(displayedTotals.lucroBruto)} />
         <CurrencyCard label="Lucro liquido" value={formatCurrency(displayedTotals.lucroLiquido)} />
       </SummaryGrid>
 
       <SectionCard
-        title="Resumo por colaborador no mes"
-        subtitle="Conferencia de faturamento do dono/admin, funcionario e comissoes pagaveis."
+        title="Resumo por colaborador no mês"
+        subtitle="Conferência de faturamento do dono/admin, funcionário e comissões pagáveis."
       >
         <DataTable
           columns={[
@@ -278,7 +278,7 @@ export function AdminFinancePage() {
               key: 'tipoRemuneracao',
               label: 'Perfil',
               render: (row) =>
-                row.recebeComissao ? 'Funcionario comissionado' : 'Dono/Admin (sem comissao)',
+                row.recebeComissao ? 'Funcionário comissionado' : 'Dono/Admin (sem comissão)',
             },
             {
               key: 'totalRealizado',
@@ -292,12 +292,12 @@ export function AdminFinancePage() {
             },
             {
               key: 'totalComissao',
-              label: 'Comissao (paga pelo cliente)',
+              label: 'Comissão (paga pelo cliente)',
               render: (row) => formatCurrency(row.recebeComissao ? row.totalComissao : 0),
             },
           ]}
           rows={collaboratorRows}
-          empty="Sem atendimentos lancados para o mes selecionado."
+          empty="Sem atendimentos lançados para o mês selecionado."
         />
       </SectionCard>
 
@@ -309,7 +309,7 @@ export function AdminFinancePage() {
           columns={[
             {
               key: 'referencia_mes',
-              label: 'Mes/ano',
+              label: 'Mês/ano',
               render: (row) => dayjs(row.referencia_mes).format('MM/YYYY'),
             },
             { key: 'total_entradas', label: 'Realizado', render: (row) => formatCurrency(row.total_entradas) },
@@ -321,12 +321,12 @@ export function AdminFinancePage() {
             { key: 'total_pendente', label: 'Pendente', render: (row) => formatCurrency(row.total_pendente ?? 0) },
             { key: 'faturamento_equipe', label: 'Equipe', render: (row) => formatCurrency(row.faturamento_equipe || 0) },
             { key: 'faturamento_admin', label: 'Admin/Dono', render: (row) => formatCurrency(row.faturamento_admin || 0) },
-            { key: 'total_comissoes', label: 'Comissoes geradas', render: (row) => formatCurrency(row.total_comissoes) },
-            { key: 'comissao_paga', label: 'Comissao paga', render: (row) => formatCurrency(row.comissao_paga || 0) },
-            { key: 'comissao_pendente', label: 'Comissao pendente', render: (row) => formatCurrency(row.comissao_pendente || 0) },
+            { key: 'total_comissoes', label: 'Comissões geradas', render: (row) => formatCurrency(row.total_comissoes) },
+            { key: 'comissao_paga', label: 'Comissão paga', render: (row) => formatCurrency(row.comissao_paga || 0) },
+            { key: 'comissao_pendente', label: 'Comissão pendente', render: (row) => formatCurrency(row.comissao_pendente || 0) },
             { key: 'total_gastos', label: 'Gastos', render: (row) => formatCurrency(row.total_gastos) },
             { key: 'lucro_bruto', label: 'Lucro bruto', render: (row) => formatCurrency(row.lucro_bruto) },
-            { key: 'lucro_liquido', label: 'Lucro liquido', render: (row) => formatCurrency(row.lucro_liquido) },
+            { key: 'lucro_liquido', label: 'Lucro líquido', render: (row) => formatCurrency(row.lucro_liquido) },
             {
               key: 'fechado_em',
               label: 'Fechado em',
@@ -335,18 +335,18 @@ export function AdminFinancePage() {
             { key: 'status_fechamento', label: 'Status' },
           ]}
           rows={monthlyHistoryRows}
-          empty="Nenhum fechamento mensal historico encontrado."
+          empty="Nenhum fechamento mensal histórico encontrado."
         />
       </SectionCard>
 
-      <SectionCard title="Lancamento de gasto">
+      <SectionCard title="Lançamento de gasto">
         <form
           className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"
           onSubmit={async (event) => {
             event.preventDefault()
             try {
               if (monthClosure?.status_fechamento === 'fechado') {
-                throw new Error('Este mes esta fechado. Reabra o mes para editar gastos.')
+                throw new Error('Este mês está fechado. Reabra o mês para editar gastos.')
               }
 
               if (
@@ -365,7 +365,7 @@ export function AdminFinancePage() {
                   data: newExpense.data,
                   criado_por: profile.id,
                 })
-                showToast({ tone: 'success', title: 'Recorrencia futura atualizada' })
+                showToast({ tone: 'success', title: 'Recorrência futura atualizada' })
                 reload()
                 return
               }
@@ -385,7 +385,7 @@ export function AdminFinancePage() {
             }
           }}
         >
-          <FormField label="Descricao">
+          <FormField label="Descrição">
             <input
               className="input"
               value={newExpense.descricao}
@@ -452,12 +452,12 @@ export function AdminFinancePage() {
           {newExpense.id && newExpense.tipo === 'fixo' && (newExpense.recorrente_mensal || newExpense.origem_recorrente_id) ? (
             <div className="sm:col-span-2 xl:col-span-5">
               <SelectField
-                label="Modo de edicao do gasto fixo"
+                label="Modo de edição do gasto fixo"
                 value={editScope}
                 onChange={(value) => setEditScope(value)}
                 options={[
-                  { value: 'mes', label: 'Editar so este mes' },
-                  { value: 'recorrencia', label: 'Editar recorrencia futura' },
+                  { value: 'mes', label: 'Editar só este mês' },
+                  { value: 'recorrencia', label: 'Editar recorrência futura' },
                 ]}
               />
             </div>
@@ -477,14 +477,14 @@ export function AdminFinancePage() {
           </div>
         </SectionCard>
 
-        <SectionCard title="Gastos lancados no periodo">
+        <SectionCard title="Gastos lançados no período">
           <Toolbar>
             <div className="grid w-full gap-2 md:grid-cols-2 lg:grid-cols-4">
               <label className="relative min-w-0 lg:col-span-2">
                 <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
                   className="input !pl-11"
-                  placeholder="Buscar por descricao"
+                  placeholder="Buscar por descrição"
                   value={search}
                   onChange={(event) => {
                     setCurrentPage(1)
@@ -539,18 +539,18 @@ export function AdminFinancePage() {
             <div className="mt-4">
               <EmptyState
                 title="Nenhum gasto encontrado"
-                description="Ajuste os filtros para localizar gastos neste periodo."
+                description="Ajuste os filtros para localizar gastos neste período."
               />
             </div>
           ) : (
             <div className="mt-4 space-y-3">
               <DataTable
                 columns={[
-                  { key: 'descricao', label: 'Descricao' },
+                  { key: 'descricao', label: 'Descrição' },
                   { key: 'tipo', label: 'Categoria' },
                   {
                     key: 'recorrente_mensal',
-                    label: 'Recorrencia',
+                    label: 'Recorrência',
                     render: (row) =>
                       row.tipo === 'fixo'
                         ? row.recorrente_mensal
@@ -558,13 +558,13 @@ export function AdminFinancePage() {
                           : row.origem_recorrente_id
                             ? 'Fixo (gerado)'
                             : 'Fixo pontual'
-                        : 'Variavel',
+                        : 'Variável',
                   },
                   { key: 'data', label: 'Data', render: (row) => formatDate(row.data) },
                   { key: 'valor', label: 'Valor', render: (row) => formatCurrency(row.valor) },
                   {
                     key: 'acao',
-                    label: 'Acao',
+                    label: 'Ação',
                     render: (row) => (
                       <button
                         type="button"
@@ -587,7 +587,7 @@ export function AdminFinancePage() {
                   },
                 ]}
                 rows={paginatedExpenses}
-                empty="Nenhum gasto registrado neste mes."
+                empty="Nenhum gasto registrado neste mês."
               />
               <div className="flex flex-col gap-2 rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2.5 text-sm text-slate-300 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs text-slate-400">
@@ -596,7 +596,7 @@ export function AdminFinancePage() {
                 <div className="flex flex-wrap items-center justify-end gap-2">
                   <div className="inline-flex items-center gap-2 rounded-md border border-slate-700 px-2 py-1">
                     <label htmlFor="finance-page-size" className="text-xs text-slate-400">
-                      Itens/pagina
+                      Itens/página
                     </label>
                     <select
                       id="finance-page-size"
@@ -628,7 +628,7 @@ export function AdminFinancePage() {
                     Anterior
                   </button>
                   <span className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-300">
-                    Pagina {currentPage} de {totalPages}
+                    Página {currentPage} de {totalPages}
                   </span>
                   <button
                     type="button"
@@ -636,7 +636,7 @@ export function AdminFinancePage() {
                     disabled={currentPage === totalPages}
                     onClick={() => setCurrentPage((old) => Math.min(totalPages, old + 1))}
                   >
-                    Proxima
+                    Próxima
                     <ChevronRight size={14} />
                   </button>
                 </div>

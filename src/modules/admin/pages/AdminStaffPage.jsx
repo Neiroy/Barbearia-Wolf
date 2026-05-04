@@ -93,8 +93,8 @@ export function AdminStaffPage() {
     <section className="space-y-6 pb-6">
       <PageHeader
         eyebrow="Admin"
-        title="Funcionarios"
-        description="Gestao premium da equipe e configuracao de comissao por colaborador."
+        title="Funcionários"
+        description="Gestão premium da equipe e configuração de comissão por colaborador."
         actions={
           <button
             type="button"
@@ -108,25 +108,25 @@ export function AdminStaffPage() {
       />
 
       <SummaryGrid columns={6}>
-        <StatCard label="Total de perfis" value={kpis.total} hint="Usuarios cadastrados no sistema" />
-        <StatCard label="Perfis com comissao" value={kpis.totalComissionados} hint="Participam de pagamento semanal" />
-        <StatCard label="Perfis sem comissao" value={kpis.totalSemComissao} hint="Dono/admin ou remuneracao fixa" />
+        <StatCard label="Total de perfis" value={kpis.total} hint="Usuários cadastrados no sistema" />
+        <StatCard label="Perfis com comissão" value={kpis.totalComissionados} hint="Participam de pagamento semanal" />
+        <StatCard label="Perfis sem comissão" value={kpis.totalSemComissao} hint="Dono/admin ou remuneração fixa" />
         <StatCard
-          label="Comissao media"
+          label="Comissão média"
           value={`${kpis.mediaComissao.toFixed(1)}%`}
-          hint="Media dos perfis comissionados"
+          hint="Média dos perfis comissionados"
         />
         <StatCard
-          label="Maior comissao"
+          label="Maior comissão"
           value={`${kpis.maiorComissao.toFixed(1)}%`}
           hint="Maior percentual configurado"
         />
-        <StatCard label="Ativos" value={kpis.ativos} hint="Podem acessar e lancar atendimentos" />
-        <StatCard label="Inativos" value={kpis.inativos} hint="Bloqueados sem perder historico" />
+        <StatCard label="Ativos" value={kpis.ativos} hint="Podem acessar e lançar atendimentos" />
+        <StatCard label="Inativos" value={kpis.inativos} hint="Bloqueados sem perder histórico" />
       </SummaryGrid>
 
       <SectionCard
-        title="Novo funcionario"
+        title="Novo funcionário"
         subtitle="Cria login no Supabase Auth e perfil no sistema automaticamente."
       >
         <form
@@ -147,16 +147,16 @@ export function AdminStaffPage() {
               await reload()
               setCreateForm({ nome: '', emailLocalPart: '', senha: '', percentualComissao: '40,0' })
               setEmailEditedManually(false)
-              setFeedback(`Funcionario criado com sucesso: ${result.email}`)
-              showToast({ tone: 'success', title: 'Funcionario criado', description: result.email })
+              setFeedback(`Funcionário criado com sucesso: ${result.email}`)
+              showToast({ tone: 'success', title: 'Funcionário criado', description: result.email })
             } catch (createError) {
-              const message = createError?.message || 'Falha ao criar funcionario.'
+              const message = createError?.message || 'Falha ao criar funcionário.'
               const shouldOfferReactivation = message.includes('(inativo)')
 
               if (shouldOfferReactivation) {
                 const email = `${createForm.emailLocalPart.trim()}@barbeariawolf.com`
                 const okToReactivate = window.confirm(
-                  `Ja existe um funcionario inativo com o e-mail ${email}. Deseja reativar agora?`,
+                  `Já existe um funcionário inativo com o e-mail ${email}. Deseja reativar agora?`,
                 )
 
                 if (okToReactivate) {
@@ -165,15 +165,15 @@ export function AdminStaffPage() {
                     await reload()
                     setCreateForm({ nome: '', emailLocalPart: '', senha: '', percentualComissao: '40,0' })
                     setEmailEditedManually(false)
-                    setFeedback(`Funcionario reativado com sucesso: ${email}`)
-                    showToast({ tone: 'success', title: 'Funcionario reativado', description: email })
+                    setFeedback(`Funcionário reativado com sucesso: ${email}`)
+                    showToast({ tone: 'success', title: 'Funcionário reativado', description: email })
                     return
                   } catch (reactivationError) {
                     captureAppError(reactivationError, { source: 'AdminStaffPage.reactivateEmployeeByEmail' })
-                    setError(reactivationError.message || 'Falha ao reativar funcionario.')
+                    setError(reactivationError.message || 'Falha ao reativar funcionário.')
                     showToast({
                       tone: 'error',
-                      title: 'Falha ao reativar funcionario',
+                      title: 'Falha ao reativar funcionário',
                       description: reactivationError.message || 'Tente novamente.',
                     })
                     return
@@ -183,7 +183,7 @@ export function AdminStaffPage() {
 
               captureAppError(createError, { source: 'AdminStaffPage.createEmployee' })
               setError(message)
-              showToast({ tone: 'error', title: 'Falha ao criar funcionario', description: message || 'Tente novamente.' })
+              showToast({ tone: 'error', title: 'Falha ao criar funcionário', description: message || 'Tente novamente.' })
             } finally {
               setCreating(false)
             }
@@ -208,7 +208,7 @@ export function AdminStaffPage() {
               placeholder="Ex.: Gabriel"
             />
           </FormField>
-          <FormField label="Usuario de e-mail" className="lg:col-span-2 xl:col-span-3">
+          <FormField label="Usuário de e-mail" className="lg:col-span-2 xl:col-span-3">
             <input
               className="input"
               required
@@ -244,7 +244,7 @@ export function AdminStaffPage() {
               </button>
             </div>
           </FormField>
-          <FormField label="Comissao (%)" className="lg:col-span-1 xl:col-span-1">
+          <FormField label="Comissão (%)" className="lg:col-span-1 xl:col-span-1">
             <input
               className="input"
               type="text"
@@ -259,15 +259,15 @@ export function AdminStaffPage() {
             />
           </FormField>
           <div className="lg:col-span-1 xl:col-span-2">
-            <span className="block text-xs font-medium uppercase tracking-wide text-transparent select-none">Acao</span>
+            <span className="block text-xs font-medium uppercase tracking-wide text-transparent select-none">Ação</span>
             <button className="btn-primary h-10 w-full min-w-[180px]" type="submit" disabled={creating}>
-              {creating ? 'Criando...' : 'Criar funcionario'}
+              {creating ? 'Criando...' : 'Criar funcionário'}
             </button>
           </div>
         </form>
       </SectionCard>
 
-      <SectionCard title="Regra financeira por perfil" subtitle="Configure acesso e remuneracao de forma separada.">
+      <SectionCard title="Regra financeira por perfil" subtitle="Configure acesso e remuneração de forma separada.">
         <form
           className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6"
           onSubmit={async (event) => {
@@ -286,24 +286,24 @@ export function AdminStaffPage() {
                 percentual_comissao: parsedPercentual,
               })
               await reload()
-              setFeedback('Comissao atualizada com sucesso.')
+              setFeedback('Comissão atualizada com sucesso.')
               showToast({ tone: 'success', title: 'Regra financeira atualizada' })
             } catch (submitError) {
               captureAppError(submitError, { source: 'AdminStaffPage.submit', userId: form.id || null })
-              setError(submitError.message || 'Falha ao atualizar comissao.')
+              setError(submitError.message || 'Falha ao atualizar comissão.')
               showToast({ tone: 'error', title: 'Falha ao atualizar regra financeira', description: submitError.message || 'Tente novamente.' })
             } finally {
               setSaving(false)
             }
           }}
         >
-          <FormField label="Funcionario">
+          <FormField label="Funcionário">
             <input className="input" value={form.nome} readOnly />
           </FormField>
           <FormField label="Acesso">
             <input className="input" value={form.tipo} readOnly />
           </FormField>
-          <FormField label="Tipo de remuneracao">
+          <FormField label="Tipo de remuneração">
             <div className="relative">
               <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <select
@@ -317,7 +317,7 @@ export function AdminStaffPage() {
               </select>
             </div>
           </FormField>
-          <FormField label="Recebe comissao">
+          <FormField label="Recebe comissão">
             <div className="relative">
               <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <select
@@ -331,7 +331,7 @@ export function AdminStaffPage() {
                 }
               >
                 <option value="true">Sim</option>
-                <option value="false">Nao</option>
+                <option value="false">Não</option>
               </select>
             </div>
           </FormField>
@@ -349,11 +349,11 @@ export function AdminStaffPage() {
                 }
               >
                 <option value="true">Sim</option>
-                <option value="false">Nao</option>
+                <option value="false">Não</option>
               </select>
             </div>
           </FormField>
-          <FormField label="Percentual de comissao">
+          <FormField label="Percentual de comissão">
             <input
               className="input"
               type="text"
@@ -388,7 +388,7 @@ export function AdminStaffPage() {
               <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
                 className="input !pl-11"
-                placeholder="Buscar funcionario por nome"
+                placeholder="Buscar funcionário por nome"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
@@ -412,7 +412,7 @@ export function AdminStaffPage() {
         {filteredRows.length === 0 ? (
           <div className="mt-4">
             <EmptyState
-              title="Nenhum funcionario encontrado"
+              title="Nenhum funcionário encontrado"
               description="Ajuste sua busca para localizar um colaborador."
             />
           </div>
@@ -422,7 +422,7 @@ export function AdminStaffPage() {
               columns={[
                 {
                   key: 'nome',
-                  label: 'Funcionario',
+                  label: 'Funcionário',
                   render: (row) => (
                     <span className="inline-flex items-center gap-2 font-semibold text-slate-100">
                       <UsersRound size={14} className="text-slate-500" />
@@ -432,7 +432,7 @@ export function AdminStaffPage() {
                 },
                 {
                   key: 'percentual_comissao',
-                  label: 'Comissao',
+                  label: 'Comissão',
                   render: (row) => (
                     <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/40 bg-sky-500/10 px-2.5 py-1 text-xs font-medium text-sky-300">
                       <BadgePercent size={12} />
@@ -455,7 +455,7 @@ export function AdminStaffPage() {
                   label: 'Regra financeira',
                   render: (row) => (
                     <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/30 bg-sky-500/10 px-2.5 py-1 text-xs text-sky-300">
-                      {row.recebe_comissao ? `Comissionado (${Number(row.percentual_comissao).toFixed(1)}%)` : 'Sem comissao'}
+                      {row.recebe_comissao ? `Comissionado (${Number(row.percentual_comissao).toFixed(1)}%)` : 'Sem comissão'}
                     </span>
                   ),
                 },
@@ -476,7 +476,7 @@ export function AdminStaffPage() {
                 },
                 {
                   key: 'actions',
-                  label: 'Acao',
+                  label: 'Ação',
                   render: (row) => (
                     <div className="flex flex-wrap gap-2">
                       <button
@@ -504,9 +504,9 @@ export function AdminStaffPage() {
                               await setEmployeeStatus({ id: row.id, ativo: true })
                               await reload()
                               setFeedback(`${row.nome} reativado com sucesso.`)
-                              showToast({ tone: 'success', title: 'Funcionario reativado' })
+                              showToast({ tone: 'success', title: 'Funcionário reativado' })
                             } catch (statusError) {
-                              setError(statusError.message || 'Falha ao reativar funcionario.')
+                              setError(statusError.message || 'Falha ao reativar funcionário.')
                               showToast({ tone: 'error', title: 'Falha ao reativar', description: statusError.message || 'Tente novamente.' })
                             }
                           }}
@@ -519,7 +519,7 @@ export function AdminStaffPage() {
                             className="btn-secondary"
                             type="button"
                             onClick={async () => {
-                              const ok = window.confirm(`Desativar ${row.nome}? Ele nao conseguira acessar e lancar atendimentos.`)
+                              const ok = window.confirm(`Desativar ${row.nome}? Ele não conseguirá acessar e lançar atendimentos.`)
                               if (!ok) return
                               setError('')
                               setFeedback('')
@@ -527,9 +527,9 @@ export function AdminStaffPage() {
                                 await setEmployeeStatus({ id: row.id, ativo: false })
                                 await reload()
                                 setFeedback(`${row.nome} desativado com sucesso.`)
-                                showToast({ tone: 'success', title: 'Funcionario desativado' })
+                                showToast({ tone: 'success', title: 'Funcionário desativado' })
                               } catch (statusError) {
-                                setError(statusError.message || 'Falha ao desativar funcionario.')
+                                setError(statusError.message || 'Falha ao desativar funcionário.')
                                 showToast({ tone: 'error', title: 'Falha ao desativar', description: statusError.message || 'Tente novamente.' })
                               }
                             }}
@@ -541,7 +541,7 @@ export function AdminStaffPage() {
                             type="button"
                             onClick={async () => {
                               const ok = window.confirm(
-                                `Excluir logicamente ${row.nome}? O historico sera mantido e o acesso bloqueado.`,
+                                `Excluir logicamente ${row.nome}? O histórico será mantido e o acesso bloqueado.`,
                               )
                               if (!ok) return
                               setError('')
@@ -549,10 +549,10 @@ export function AdminStaffPage() {
                               try {
                                 await setEmployeeStatus({ id: row.id, ativo: false, excluirLogico: true })
                                 await reload()
-                                setFeedback(`${row.nome} removido do painel com historico preservado.`)
-                                showToast({ tone: 'success', title: 'Funcionario removido do painel' })
+                                setFeedback(`${row.nome} removido do painel com histórico preservado.`)
+                                showToast({ tone: 'success', title: 'Funcionário removido do painel' })
                               } catch (statusError) {
-                                setError(statusError.message || 'Falha ao excluir funcionario.')
+                                setError(statusError.message || 'Falha ao excluir funcionário.')
                                 showToast({ tone: 'error', title: 'Falha ao excluir', description: statusError.message || 'Tente novamente.' })
                               }
                             }}

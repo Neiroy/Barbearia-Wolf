@@ -83,7 +83,7 @@ export function AdminWeeklyReportsPage() {
       showToast({
         tone: 'error',
         title: 'Falha ao carregar fechamento',
-        description: error?.message || 'Nao foi possivel carregar o fechamento semanal.',
+        description: error?.message || 'Não foi possível carregar o fechamento semanal.',
       })
     } finally {
       setLoading(false)
@@ -199,20 +199,20 @@ export function AdminWeeklyReportsPage() {
 
   function exportCsv() {
     const header = [
-      'Funcionario',
-      'Tipo remuneracao',
-      'Participa fechamento comissao',
+      'Funcionário',
+      'Tipo remuneração',
+      'Participa fechamento comissão',
       'Atendimentos',
       'Total realizado',
       'Recebido (cliente)',
       'Pendente (cliente)',
-      'Comissao valida',
+      'Comissão válida',
       'Status fechamento',
     ]
     const lines = filteredRows.map((row) => [
       row.funcionario,
       row.tipoRemuneracao,
-      row.participaFechamentoComissao ? 'sim' : 'nao',
+      row.participaFechamentoComissao ? 'sim' : 'não',
       row.totalServicos,
       Number(row.totalVendido || 0).toFixed(2),
       Number(row.totalRecebido ?? 0).toFixed(2),
@@ -248,7 +248,7 @@ export function AdminWeeklyReportsPage() {
       showToast({
         tone: 'error',
         title: 'Falha ao atualizar pagamento',
-        description: `Nao foi possivel atualizar o pagamento de ${row.funcionario}.`,
+        description: `Não foi possível atualizar o pagamento de ${row.funcionario}.`,
       })
     } finally {
       setSaving(false)
@@ -260,8 +260,8 @@ export function AdminWeeklyReportsPage() {
     if (!pendingRows.length) {
       showToast({
         tone: 'info',
-        title: 'Sem pendencias',
-        description: 'Nao ha funcionarios pendentes nos filtros atuais.',
+        title: 'Sem pendências',
+        description: 'Não há funcionários pendentes nos filtros atuais.',
       })
       setBulkPayConfirmOpen(false)
       return
@@ -274,7 +274,7 @@ export function AdminWeeklyReportsPage() {
       showToast({
         tone: 'success',
         title: 'Semana marcada como paga',
-        description: 'Pagamento atualizado para os funcionarios pendentes filtrados.',
+        description: 'Pagamento atualizado para os funcionários pendentes filtrados.',
       })
     } catch (error) {
       captureAppError(error, {
@@ -298,7 +298,7 @@ export function AdminWeeklyReportsPage() {
       <PageHeader
         eyebrow="Admin"
         title="Fechamento semanal"
-        description={`Consolidado semanal para conferencia e pagamento de comissoes (${dayjs(weekStart).format('DD/MM')} - ${dayjs(weekEnd).format('DD/MM')}).`}
+        description={`Consolidado semanal para conferência e pagamento de comissões (${dayjs(weekStart).format('DD/MM')} – ${dayjs(weekEnd).format('DD/MM')}).`}
         actions={
           <div className="flex w-full flex-wrap items-center justify-end gap-2 lg:w-auto">
             <span className="inline-flex items-center rounded-md border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-emerald-300">
@@ -329,19 +329,19 @@ export function AdminWeeklyReportsPage() {
               to="/admin/comissoes"
               className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs text-slate-200 transition hover:border-sky-500/40 hover:text-sky-300"
             >
-              Ir para comissoes
+              Ir para comissões
             </Link>
             <Link
               to="/admin/historicos"
               className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs text-slate-200 transition hover:border-sky-500/40 hover:text-sky-300"
             >
-              Ver historicos completos
+              Ver históricos completos
             </Link>
             <Link
               to="/admin/producao"
               className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-xs text-slate-200 transition hover:border-sky-500/40 hover:text-sky-300"
             >
-              Ver producao
+              Ver produção
             </Link>
             <button
               type="button"
@@ -355,27 +355,27 @@ export function AdminWeeklyReportsPage() {
       />
 
       <SummaryGrid columns={5}>
-        <StatCard label="Realizado (semana)" value={formatCurrency(totals.totalVendido)} hint="Producao terca a sabado" />
+        <StatCard label="Realizado (semana)" value={formatCurrency(totals.totalVendido)} hint="Produção terça a sábado" />
         <StatCard label="Recebido (cliente)" value={formatCurrency(totals.totalRecebidoCliente)} hint="Vendas quitadas" />
         <StatCard label="Pendente (cliente)" value={formatCurrency(totals.totalPendenteCliente)} hint="Aguardando pagamento" />
-        <StatCard label="Comissao valida" value={formatCurrency(totals.totalComissao)} hint="Sobre vendas pagas" />
-        <StatCard label="Ticket medio" value={formatCurrency(totals.ticketMedio)} hint="Media por atendimento" />
+        <StatCard label="Comissão válida" value={formatCurrency(totals.totalComissao)} hint="Sobre vendas pagas" />
+        <StatCard label="Ticket médio" value={formatCurrency(totals.ticketMedio)} hint="Média por atendimento" />
       </SummaryGrid>
       <SummaryGrid columns={2}>
         <StatCard label="Total atendimentos" value={totals.totalAtendimentos} />
-        <StatCard label="Funcionarios no fechamento" value={totals.totalFuncionarios} />
+        <StatCard label="Funcionários no fechamento" value={totals.totalFuncionarios} />
       </SummaryGrid>
 
       <SummaryGrid columns={2}>
         <StatCard
-          label="Producao dono/admin (atendimentos)"
+          label="Produção dono/admin (atendimentos)"
           value={ownerTotals.totalAtendimentos}
-          hint="Nao participa de fechamento de comissao"
+          hint="Não participa de fechamento de comissão"
         />
         <StatCard
-          label="Producao dono/admin (faturamento)"
+          label="Produção dono/admin (faturamento)"
           value={formatCurrency(ownerTotals.totalVendido)}
-          hint="Receita operacional sem custo de comissao"
+          hint="Receita operacional sem custo de comissão"
         />
       </SummaryGrid>
 
@@ -385,7 +385,7 @@ export function AdminWeeklyReportsPage() {
             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               className="input !pl-11"
-              placeholder="Buscar funcionario"
+              placeholder="Buscar funcionário"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -413,7 +413,7 @@ export function AdminWeeklyReportsPage() {
               value={employeeFilter}
               onChange={(event) => setEmployeeFilter(event.target.value)}
             >
-              <option value="all">Todos funcionarios</option>
+              <option value="all">Todos os funcionários</option>
               {employees.map((employee) => (
                 <option key={employee} value={employee}>
                   {employee}
@@ -429,7 +429,7 @@ export function AdminWeeklyReportsPage() {
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
             >
-              <option value="all">Todos status</option>
+              <option value="all">Todos os status</option>
               <option value="aberto">Aberto</option>
               <option value="pendente">Pendente</option>
               <option value="pago">Pago</option>
@@ -437,26 +437,26 @@ export function AdminWeeklyReportsPage() {
           </label>
           <div className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-slate-300 md:col-span-2 lg:col-span-4 xl:col-span-1">
             <Filter size={13} />
-            Semana fixa (terca a sabado)
+            Semana fixa (terça a sábado)
           </div>
         </div>
       </Toolbar>
 
       <SectionCard
         title="Resumo da semana atual"
-        subtitle="Consolidacao gerencial semanal para conferencias e pagamentos (ciclo fixo: terca a sabado)."
+        subtitle="Consolidação gerencial semanal para conferências e pagamentos (ciclo fixo: terça a sábado)."
       >
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Periodo</p>
-            <p className="mt-1 text-sm font-medium text-slate-100">{dayjs(weekStart).format('DD/MM')} - {dayjs(weekEnd).format('DD/MM')}</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Período</p>
+            <p className="mt-1 text-sm font-medium text-slate-100">{dayjs(weekStart).format('DD/MM')} – {dayjs(weekEnd).format('DD/MM')}</p>
           </div>
           <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Funcionario destaque</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Funcionário em destaque</p>
             <p className="mt-1 text-sm font-medium text-slate-100">{destaque}</p>
           </div>
           <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-3">
-            <p className="text-xs uppercase tracking-wide text-emerald-300">Total ja pago</p>
+            <p className="text-xs uppercase tracking-wide text-emerald-300">Total já pago</p>
             <p className="mt-1 text-sm font-semibold text-emerald-300">{formatCurrency(totals.totalPago)}</p>
           </div>
           <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-3">
@@ -477,7 +477,7 @@ export function AdminWeeklyReportsPage() {
           columns={[
             {
               key: 'funcionario',
-              label: 'Funcionario',
+              label: 'Funcionário',
               render: (row) => (
                 <span className="inline-flex items-center gap-2 font-semibold text-slate-100">
                   <UserRound size={13} className="text-slate-500" />
@@ -505,7 +505,7 @@ export function AdminWeeklyReportsPage() {
             },
             {
               key: 'totalComissao',
-              label: 'Comissao valida',
+              label: 'Comissão válida',
               render: (row) => (
                 <span className="inline-flex items-center gap-1 font-semibold text-sky-300">
                   <Wallet size={13} />
@@ -520,7 +520,7 @@ export function AdminWeeklyReportsPage() {
             },
             {
               key: 'actions',
-              label: 'Acao',
+              label: 'Ação',
               render: (row) =>
                 row.status === 'pago' ? (
                   <span className="text-xs text-slate-500">Pago</span>
@@ -539,26 +539,26 @@ export function AdminWeeklyReportsPage() {
 
       <SectionCard
         title="Histórico semanal congelado"
-        subtitle="Fechamentos anteriores com snapshot salvo no momento do pagamento. Para visao completa, acesse o modulo Historicos."
+        subtitle="Fechamentos anteriores com snapshot salvo no momento do pagamento. Para visão completa, acesse o módulo Históricos."
       >
         {historyRows.length === 0 ? (
           <EmptyState
-            title="Sem historico semanal"
-            description="Os fechamentos gerados aparecerao aqui para consulta."
+            title="Sem histórico semanal"
+            description="Os fechamentos gerados aparecerão aqui para consulta."
           />
         ) : (
           <DataTable
             columns={[
-              { key: 'usuario', label: 'Funcionario', render: (row) => row.usuario?.nome || 'Sem nome' },
+              { key: 'usuario', label: 'Funcionário', render: (row) => row.usuario?.nome || 'Sem nome' },
               {
                 key: 'periodo',
-                label: 'Periodo',
+                label: 'Período',
                 render: (row) =>
-                  `${dayjs(row.semana_inicio).format('DD/MM/YYYY')} ate ${dayjs(row.semana_fim).format('DD/MM/YYYY')}`,
+                  `${dayjs(row.semana_inicio).format('DD/MM/YYYY')} até ${dayjs(row.semana_fim).format('DD/MM/YYYY')}`,
               },
               { key: 'total_servicos', label: 'Atendimentos' },
               { key: 'total_vendido', label: 'Total vendido', render: (row) => formatCurrency(row.total_vendido) },
-              { key: 'total_comissao', label: 'Comissao', render: (row) => formatCurrency(row.total_comissao) },
+              { key: 'total_comissao', label: 'Comissão', render: (row) => formatCurrency(row.total_comissao) },
               {
                 key: 'pago_em',
                 label: 'Pago em',
@@ -576,18 +576,18 @@ export function AdminWeeklyReportsPage() {
       </SectionCard>
 
       <SectionCard
-        title="Producao do dono/admin"
-        subtitle="Atendimentos operacionais fora da folha de comissao da equipe. Analise detalhada no modulo Producao."
+        title="Produção do dono/admin"
+        subtitle="Atendimentos operacionais fora da folha de comissão da equipe. Análise detalhada no módulo Produção."
       >
         {ownerProductionRows.length === 0 ? (
           <EmptyState
-            title="Sem producao do dono/admin nesta semana"
-            description="Nao ha atendimentos de perfis sem comissao no periodo filtrado."
+            title="Sem produção do dono/admin nesta semana"
+            description="Não há atendimentos de perfis sem comissão no período filtrado."
           />
         ) : (
           <DataTable
             columns={[
-              { key: 'funcionario', label: 'Responsavel' },
+              { key: 'funcionario', label: 'Responsável' },
               { key: 'cliente_nome', label: 'Cliente' },
               {
                 key: 'valor_servico',
@@ -596,7 +596,7 @@ export function AdminWeeklyReportsPage() {
               },
               {
                 key: 'valor_comissao',
-                label: 'Comissao',
+                label: 'Comissão',
                 render: () => <span className="text-slate-400">{formatCurrency(0)}</span>,
               },
             ]}
@@ -608,7 +608,7 @@ export function AdminWeeklyReportsPage() {
       <ConfirmDialog
         open={Boolean(targetToPay)}
         title="Confirmar pagamento"
-        description={`Deseja marcar ${targetToPay?.funcionario || 'este funcionario'} como pago nesta semana?`}
+        description={`Deseja marcar ${targetToPay?.funcionario || 'este funcionário'} como pago nesta semana?`}
         onCancel={() => setTargetToPay(null)}
         onConfirm={async () => {
           await markEmployeeAsPaid(targetToPay)
@@ -618,7 +618,7 @@ export function AdminWeeklyReportsPage() {
       <ConfirmDialog
         open={bulkPayConfirmOpen}
         title="Confirmar pagamento em lote"
-        description="Deseja marcar como pago todo o fechamento pendente dos funcionarios visiveis nos filtros atuais?"
+        description="Deseja marcar como pago todo o fechamento pendente dos funcionários visíveis nos filtros atuais?"
         onCancel={() => setBulkPayConfirmOpen(false)}
         onConfirm={markVisibleRowsAsPaid}
       />

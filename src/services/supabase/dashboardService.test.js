@@ -18,7 +18,7 @@ describe('dashboardService regras financeiras', () => {
     expect(grouped.find((row) => row.venda_id === 'v1')?.valor_servico).toBe(50)
   })
 
-  it('calcula resumo semanal por combos (nao por item)', () => {
+  it('calcula resumo semanal por combos (não por item)', () => {
     const rows = [
       { venda_id: 'v1', usuario_id: 'u1', cliente_nome: 'A', data_hora: '2026-01-01T10:00:00Z', valor_servico: 30, valor_comissao: 12 },
       { venda_id: 'v1', usuario_id: 'u1', cliente_nome: 'A', data_hora: '2026-01-01T10:00:00Z', valor_servico: 20, valor_comissao: 8 },
@@ -31,7 +31,7 @@ describe('dashboardService regras financeiras', () => {
     expect(summary.totalComissao).toBe(36)
   })
 
-  it('exclui dono/admin sem comissao do custo total de comissoes', () => {
+  it('exclui dono/admin sem comissão do custo total de comissões', () => {
     const attendances = [
       { valor_servico: 100, valor_comissao: 0, usuario: { recebe_comissao: false } },
       { valor_servico: 80, valor_comissao: 32, usuario: { recebe_comissao: true } },
@@ -48,7 +48,7 @@ describe('dashboardService regras financeiras', () => {
     expect(monthly.lucroLiquido).toBe(148)
   })
 
-  it('lucro mensal usa caixa recebido: venda pendente nao entra em recebido nem em comissao na linha', () => {
+  it('lucro mensal usa caixa recebido: venda pendente não entra em recebido nem em comissão na linha', () => {
     const attendances = [
       {
         valor_servico: 100,

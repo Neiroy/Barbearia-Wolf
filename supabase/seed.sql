@@ -1,0 +1,2 @@
+-- Seed opcional após migrations (`supabase db reset`).
+-- Adicione INSERTs de desenvolvimento aqui se precisar.

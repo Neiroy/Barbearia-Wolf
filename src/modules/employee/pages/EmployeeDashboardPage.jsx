@@ -114,9 +114,9 @@ export function EmployeeDashboardPage() {
   return (
     <section className="space-y-6 pb-6">
       <PageHeader
-        eyebrow="Funcionario"
+        eyebrow="Funcionário"
         title="Meu desempenho"
-        description={`Resumo rapido da sua performance. Periodo atual: ${currentPeriod}`}
+        description={`Resumo rápido da sua performance. Período atual: ${currentPeriod}`}
         actions={<QuickActionLinks actions={quickActions} />}
       />
 
@@ -124,7 +124,7 @@ export function EmployeeDashboardPage() {
         <PerformanceKpiCard
           title="Atendimentos na semana"
           value={weekly.totalServicos}
-          subtitle="Quantidade de servicos finalizados"
+          subtitle="Quantidade de serviços finalizados"
           icon={<Scissors size={18} />}
         />
         <PerformanceKpiCard
@@ -134,37 +134,37 @@ export function EmployeeDashboardPage() {
           icon={<DollarSign size={18} />}
         />
         <PerformanceKpiCard
-          title={receivesCommission ? 'Comissao da semana' : 'Comissao da semana (nao aplicavel)'}
+          title={receivesCommission ? 'Comissão da semana' : 'Comissão da semana (não aplicável)'}
           value={formatCurrency(weekly.totalComissao)}
-          subtitle={receivesCommission ? 'Acumulado de comissao semanal' : 'Perfil sem recebimento de comissao'}
+          subtitle={receivesCommission ? 'Acumulado de comissão semanal' : 'Perfil sem recebimento de comissão'}
           icon={<Wallet size={18} />}
         />
         <PerformanceKpiCard
-          title={receivesCommission ? 'Comissao do mes' : 'Comissao do mes (nao aplicavel)'}
+          title={receivesCommission ? 'Comissão do mês' : 'Comissão do mês (não aplicável)'}
           value={formatCurrency(monthSummary.totalComissao)}
-          subtitle={receivesCommission ? 'Total de comissao no periodo mensal' : 'Perfil sem recebimento de comissao'}
+          subtitle={receivesCommission ? 'Total de comissão no período mensal' : 'Perfil sem recebimento de comissão'}
           icon={<TrendingUp size={18} />}
         />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <SectionCard title="Visao semanal" subtitle="Panorama da sua produtividade na semana atual.">
+        <SectionCard title="Visão semanal" subtitle="Panorama da sua produtividade na semana atual.">
           <SummaryGrid columns={3}>
             <StatCard label="Atendimentos na semana" value={weekly.totalServicos} />
             <StatCard label="Valor vendido na semana" value={formatCurrency(weekly.totalVendido)} />
             <StatCard
-              label={receivesCommission ? 'Comissao acumulada' : 'Comissao (nao aplicavel)'}
+              label={receivesCommission ? 'Comissão acumulada' : 'Comissão (não aplicável)'}
               value={formatCurrency(weekly.totalComissao)}
             />
           </SummaryGrid>
         </SectionCard>
 
-        <SectionCard title="Visao mensal" subtitle="Consolidado de desempenho no mes corrente.">
+        <SectionCard title="Visão mensal" subtitle="Consolidado de desempenho no mês corrente.">
           <SummaryGrid columns={3}>
-            <StatCard label="Atendimentos no mes" value={monthSummary.totalServicos} />
-            <StatCard label="Total vendido no mes" value={formatCurrency(monthSummary.totalVendido)} />
+            <StatCard label="Atendimentos no mês" value={monthSummary.totalServicos} />
+            <StatCard label="Total vendido no mês" value={formatCurrency(monthSummary.totalVendido)} />
             <StatCard
-              label={receivesCommission ? 'Comissao do mes' : 'Comissao do mes (nao aplicavel)'}
+              label={receivesCommission ? 'Comissão do mês' : 'Comissão do mês (não aplicável)'}
               value={formatCurrency(monthSummary.totalComissao)}
             />
           </SummaryGrid>
@@ -172,7 +172,7 @@ export function EmployeeDashboardPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <SectionCard title="Atendimentos por dia da semana" subtitle="Leitura rapida da sua frequencia semanal.">
+        <SectionCard title="Atendimentos por dia da semana" subtitle="Leitura rápida da sua frequência semanal.">
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={weekByDayData}>
@@ -192,7 +192,7 @@ export function EmployeeDashboardPage() {
           </div>
         </SectionCard>
 
-        <SectionCard title="Evolucao de vendas e comissao" subtitle="Comparativo diario no mes atual.">
+        <SectionCard title="Evolução de vendas e comissão" subtitle="Comparativo diário no mês atual.">
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={monthByDayData}>
@@ -215,8 +215,8 @@ export function EmployeeDashboardPage() {
       </div>
 
       <SectionCard
-        title="Historico recente"
-        subtitle="Seus atendimentos mais recentes para acompanhamento rapido."
+        title="Histórico recente"
+        subtitle="Seus atendimentos mais recentes para acompanhamento rápido."
       >
         <div className="space-y-3">
           {recentGroupedAttendances.map((row) => (
@@ -233,7 +233,7 @@ export function EmployeeDashboardPage() {
                       className="inline-flex rounded-full border border-sky-500/30 bg-sky-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-sky-300 transition hover:border-sky-400/50 hover:bg-sky-500/20"
                       onClick={() => toggleComboDetails(row.id)}
                     >
-                      Combo ({row.servicos.length} servicos)
+                      Combo ({row.servicos.length} serviços)
                     </button>
                     {expandedCombos[row.id] ? (
                       <div className="rounded-lg border border-slate-700 bg-slate-950/80 p-2 text-[11px] text-slate-200">

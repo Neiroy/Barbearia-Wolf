@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { buildRecurringInsertPayload } from './expensesService'
 
-describe('expensesService recorrencia mensal', () => {
-  it('gera apenas os fixos recorrentes faltantes do mes', () => {
+describe('expensesService recorrência mensal', () => {
+  it('gera apenas os fixos recorrentes faltantes do mês', () => {
     const templates = [
       { id: 't1', descricao: 'Aluguel', valor: 1000, criado_por: 'u1' },
       { id: 't2', descricao: 'Internet', valor: 150, criado_por: 'u1' },

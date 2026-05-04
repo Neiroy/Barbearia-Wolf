@@ -35,7 +35,7 @@ export function EmployeeWeeklySummaryPage() {
   const ticketMedio = totals.totalServicos ? totals.totalVendido / totals.totalServicos : 0
   const topService = useMemo(() => {
     const grouped = rows.reduce((acc, row) => {
-      const key = row.servico?.nome || 'Nao informado'
+      const key = row.servico?.nome || 'Não informado'
       acc[key] = (acc[key] || 0) + 1
       return acc
     }, {})
@@ -63,15 +63,15 @@ export function EmployeeWeeklySummaryPage() {
     totals.totalServicos === 0
       ? 'Nenhum atendimento registrado nesta semana. Registre os atendimentos para acompanhar seu desempenho.'
       : totals.totalComissao >= totals.totalVendido * 0.35
-        ? 'Semana forte: sua comissao acompanha bem o volume vendido. Continue mantendo o ritmo.'
-        : 'Boa semana de operacao. Foque em servicos de maior ticket para elevar a comissao.'
+        ? 'Semana forte: sua comissão acompanha bem o volume vendido. Continue mantendo o ritmo.'
+        : 'Boa semana de operação. Foque em serviços de maior ticket para elevar a comissão.'
 
   return (
     <section className="space-y-6 pb-6">
       <PageHeader
-        eyebrow="Funcionario"
+        eyebrow="Funcionário"
         title="Resumo semanal"
-        description={`Acompanhe sua semana com clareza e foco em produtividade. Periodo: ${weekRange}`}
+        description={`Acompanhe sua semana com clareza e foco em produtividade. Período: ${weekRange}`}
         actions={<QuickActionLinks actions={quickActions} />}
       />
 
@@ -79,19 +79,19 @@ export function EmployeeWeeklySummaryPage() {
         <PerformanceKpiCard
           title="Atendimentos da semana"
           value={totals.totalServicos}
-          subtitle="Servicos concluidos no periodo"
+          subtitle="Serviços concluídos no período"
           icon={<Scissors size={18} />}
         />
         <PerformanceKpiCard
           title="Realizado"
           value={formatCurrency(totals.totalVendido)}
-          subtitle="Producao registrada (terca a sabado)"
+          subtitle="Produção registrada (terça a sábado)"
           icon={<DollarSign size={18} />}
         />
         <PerformanceKpiCard
           title="Recebido"
           value={formatCurrency(totals.totalRecebido)}
-          subtitle="Cliente ja pagou"
+          subtitle="Cliente já pagou"
           icon={<DollarSign size={18} />}
         />
         <PerformanceKpiCard
@@ -101,21 +101,21 @@ export function EmployeeWeeklySummaryPage() {
           icon={<Receipt size={18} />}
         />
         <PerformanceKpiCard
-          title={receivesCommission ? 'Comissao valida' : 'Comissao (nao aplicavel)'}
+          title={receivesCommission ? 'Comissão válida' : 'Comissão (não aplicável)'}
           value={formatCurrency(totals.totalComissao)}
-          subtitle={receivesCommission ? 'Sobre vendas pagas pelo cliente' : 'Perfil sem comissao'}
+          subtitle={receivesCommission ? 'Sobre vendas pagas pelo cliente' : 'Perfil sem comissão'}
           icon={<Wallet size={18} />}
         />
         <PerformanceKpiCard
-          title="Ticket medio"
+          title="Ticket médio"
           value={formatCurrency(ticketMedio)}
-          subtitle="Media por atendimento realizado"
+          subtitle="Média por atendimento realizado"
           icon={<TrendingUp size={18} />}
         />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <SectionCard title="Evolucao semanal" subtitle="Visualize sua performance por dia da semana.">
+        <SectionCard title="Evolução semanal" subtitle="Visualize sua performance por dia da semana.">
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={weekByDayData}>
@@ -136,12 +136,12 @@ export function EmployeeWeeklySummaryPage() {
           </div>
         </SectionCard>
 
-        <SectionCard title="Visao da semana" subtitle="Resumo estrategico para acompanhamento rapido.">
+        <SectionCard title="Visão da semana" subtitle="Resumo estratégico para acompanhamento rápido.">
           <SummaryGrid columns={3}>
             <StatCard label="Atendimentos" value={totals.totalServicos} />
             <StatCard label="Total vendido" value={formatCurrency(totals.totalVendido)} />
             <StatCard
-              label={receivesCommission ? 'Comissao' : 'Comissao (nao aplicavel)'}
+              label={receivesCommission ? 'Comissão' : 'Comissão (não aplicável)'}
               value={formatCurrency(totals.totalComissao)}
             />
           </SummaryGrid>
@@ -149,26 +149,26 @@ export function EmployeeWeeklySummaryPage() {
             <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
               <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-500">
                 <CalendarRange size={13} />
-                Periodo analisado
+                Período analisado
               </p>
               <p className="mt-1 text-sm font-medium text-slate-100">{weekRange}</p>
             </div>
             <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Servico mais realizado</p>
+              <p className="text-xs uppercase tracking-wide text-slate-500">Serviço mais realizado</p>
               <p className="mt-1 text-sm font-medium text-slate-100">{topService}</p>
             </div>
             <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-3">
-              <p className="text-xs uppercase tracking-wide text-sky-300">Resumo do periodo</p>
+              <p className="text-xs uppercase tracking-wide text-sky-300">Resumo do período</p>
               <p className="mt-1 text-sm text-slate-200">{insight}</p>
             </div>
           </div>
         </SectionCard>
       </div>
 
-      <SectionCard title="Observacoes da semana" subtitle="Leitura final da sua performance no periodo atual.">
+      <SectionCard title="Observações da semana" subtitle="Leitura final da sua performance no período atual.">
         <p className="text-sm text-slate-300">
           Este resumo considera os atendimentos da semana atual respeitando seu perfil de acesso.
-          Mantenha os lancamentos em dia para ter uma visao precisa de produtividade e resultados financeiros.
+          Mantenha os lançamentos em dia para ter uma visão precisa de produtividade e resultados financeiros.
         </p>
       </SectionCard>
     </section>

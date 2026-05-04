@@ -163,7 +163,7 @@ export function AdminDashboardPage() {
         ? 'Sem comissão em aberto na semana'
         : pendingCount === 0
           ? 'Fechamento em dia'
-          : `${pendingCount} funcionario(s) com pendencia`
+          : `${pendingCount} funcionário(s) com pendência`
 
     return {
       total: totals.total,
@@ -186,7 +186,7 @@ export function AdminDashboardPage() {
     { label: 'Novo atendimento', to: '/admin/atendimentos', icon: CalendarCheck2 },
     { label: 'Ver fechamento semanal', to: '/admin/relatorios-semanais', icon: TrendingUp },
     { label: 'Financeiro mensal', to: '/admin/financeiro-mensal', icon: Landmark },
-    { label: 'Exportar relatorio', to: '/admin/atendimentos', icon: Download },
+    { label: 'Exportar relatório', to: '/admin/atendimentos', icon: Download },
   ]
 
   function toggleComboDetails(comboId) {
@@ -203,86 +203,86 @@ export function AdminDashboardPage() {
     <section className="space-y-6 pb-6">
       <PageHeader
         eyebrow="Admin"
-        title="Centro de Gestao"
-        description="Visao executiva de faturamento, produtividade e resultado do negocio."
+        title="Centro de gestão"
+        description="Visão executiva de faturamento, produtividade e resultado do negócio."
         actions={<QuickActionLinks actions={quickActions} />}
       />
 
       <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
         <PrimaryKpiCard
-          title="Realizado no mes"
+          title="Realizado no mês"
           value={formatCurrency(snapshot.monthRevenue)}
-          subtitle="Producao registrada (inclui vendas pendentes)"
+          subtitle="Produção registrada (inclui vendas pendentes)"
           icon={<BadgeDollarSign size={18} />}
           variant="highlight"
         />
         <PrimaryKpiCard
-          title="Recebido no mes (caixa)"
+          title="Recebido no mês (caixa)"
           value={formatCurrency(snapshot.monthReceived)}
-          subtitle="Vendas ja pagas pelo cliente"
+          subtitle="Vendas já pagas pelo cliente"
           icon={<BadgeDollarSign size={18} />}
           variant="highlight"
         />
         <PrimaryKpiCard
           title="Pendente de recebimento"
           value={formatCurrency(snapshot.monthPending)}
-          subtitle="Ainda nao quitado pelo cliente"
+          subtitle="Ainda não quitado pelo cliente"
           icon={<Landmark size={18} />}
           variant="highlight"
         />
         <PrimaryKpiCard
-          title="Lucro liquido do mes"
+          title="Lucro líquido do mês"
           value={formatCurrency(snapshot.monthNetProfit)}
-          subtitle="Sobre caixa recebido, apos gastos e comissoes validas"
+          subtitle="Sobre caixa recebido, após gastos e comissões válidas"
           icon={<TrendingUp size={18} />}
           variant="highlight"
         />
       </div>
       <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
         <PrimaryKpiCard
-          title="Gastos no mes"
+          title="Gastos no mês"
           value={formatCurrency(snapshot.monthExpenses)}
           subtitle="Custos operacionais e despesas totais"
           icon={<Wallet size={18} />}
         />
         <PrimaryKpiCard
-          title="Comissao gerada (sobre pago)"
+          title="Comissão gerada (sobre pago)"
           value={formatCurrency(snapshot.monthCommissionsGenerated)}
-          subtitle="Somente servicos com venda quitada"
+          subtitle="Somente serviços com venda quitada"
           icon={<Users size={18} />}
         />
         <PrimaryKpiCard
-          title="Comissao paga (equipe)"
+          title="Comissão paga (equipe)"
           value={formatCurrency(snapshot.monthCommissionsPaid)}
           subtitle="Fechamento semanal quitado"
           icon={<CalendarCheck2 size={18} />}
         />
         <PrimaryKpiCard
-          title="Comissao pendente (equipe)"
+          title="Comissão pendente (equipe)"
           value={formatCurrency(snapshot.monthCommissionsPending)}
-          subtitle="A pagar aos funcionarios"
+          subtitle="A pagar aos funcionários"
           icon={<Landmark size={18} />}
         />
       </div>
 
       <SectionCard
         title="Origem da receita"
-        subtitle="Composicao do faturamento mensal entre equipe comissionada e dono/admin."
+        subtitle="Composição do faturamento mensal entre equipe comissionada e dono/admin."
       >
         <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
           <SummaryGrid columns={3}>
             <CurrencyCard
               label="Receita gerada pela equipe"
               value={formatCurrency(snapshot.monthEmployeeRevenue)}
-              hint="Servicos executados por funcionarios comissionados"
+              hint="Serviços executados por funcionários comissionados"
             />
             <CurrencyCard
               label="Receita gerada pelo dono/admin"
               value={formatCurrency(snapshot.monthOwnerRevenue)}
-              hint="Producao operacional sem custo de comissao"
+              hint="Produção operacional sem custo de comissão"
             />
             <CurrencyCard
-              label="Participacao da equipe"
+              label="Participação da equipe"
               value={`${revenueSourceShareData[0]?.percent.toFixed(1) || 0}%`}
               hint="Percentual da equipe no faturamento mensal"
             />
@@ -317,14 +317,14 @@ export function AdminDashboardPage() {
               </ResponsiveContainer>
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                Sem dados de faturamento para o periodo.
+                Sem dados de faturamento para o período.
               </div>
             )}
           </div>
         </div>
       </SectionCard>
 
-      <SectionCard title="Operacao do periodo" subtitle="Indicadores operacionais para leitura rapida da performance.">
+      <SectionCard title="Operação do período" subtitle="Indicadores operacionais para leitura rápida da performance.">
         <SummaryGrid columns={4}>
           <StatCard label="Realizado hoje" value={formatCurrency(snapshot.todayRevenue)} />
           <StatCard label="Recebido hoje (caixa)" value={formatCurrency(snapshot.todayReceived)} />
@@ -332,15 +332,15 @@ export function AdminDashboardPage() {
           <StatCard label="Recebido na semana" value={formatCurrency(snapshot.weekReceived)} />
         </SummaryGrid>
         <SummaryGrid columns={4}>
-          <StatCard label="Ticket medio (mes)" value={formatCurrency(snapshot.ticketMedio)} />
-          <StatCard label="Atendimentos no mes" value={snapshot.totalAttendances} />
+          <StatCard label="Ticket médio (mês)" value={formatCurrency(snapshot.ticketMedio)} />
+          <StatCard label="Atendimentos no mês" value={snapshot.totalAttendances} />
           <StatCard label="Pendente hoje" value={formatCurrency(snapshot.todayPending)} />
           <StatCard label="Pendente na semana" value={formatCurrency(snapshot.weekPending)} />
         </SummaryGrid>
       </SectionCard>
 
       <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-        <SectionCard title="Faturamento por semana do mes" subtitle="Leitura estrategica da evolucao semanal.">
+        <SectionCard title="Faturamento por semana do mês" subtitle="Leitura estratégica da evolução semanal.">
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={weeklyRevenueData}>
@@ -359,7 +359,7 @@ export function AdminDashboardPage() {
           </div>
         </SectionCard>
 
-        <SectionCard title="Gastos por categoria" subtitle="Distribuicao das despesas do mes.">
+        <SectionCard title="Gastos por categoria" subtitle="Distribuição das despesas do mês.">
           <div className="h-72">
             {expenseByCategoryData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -390,13 +390,13 @@ export function AdminDashboardPage() {
               </ResponsiveContainer>
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                Nenhum gasto cadastrado no periodo.
+                Nenhum gasto cadastrado no período.
               </div>
             )}
           </div>
         </SectionCard>
 
-        <SectionCard title="Comissao por funcionario" subtitle="Quem mais concentra pagamento de comissao no mes.">
+        <SectionCard title="Comissão por funcionário" subtitle="Quem mais concentra pagamento de comissão no mês.">
           <div className="h-72">
             {commissionByEmployeeData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -416,7 +416,7 @@ export function AdminDashboardPage() {
               </ResponsiveContainer>
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                Sem comissoes registradas no periodo.
+                Sem comissões registradas no período.
               </div>
             )}
           </div>
@@ -424,14 +424,14 @@ export function AdminDashboardPage() {
       </div>
 
       <SectionCard
-        title="Comissoes e fechamento"
-        subtitle={`Leitura da semana atual (${currentWeekRange.start.format('DD/MM')} - ${currentWeekRange.end.format('DD/MM')}). Comissao valida somente sobre vendas pagas pelo cliente.`}
+        title="Comissões e fechamento"
+        subtitle={`Leitura da semana atual (${currentWeekRange.start.format('DD/MM')} – ${currentWeekRange.end.format('DD/MM')}). Comissão válida somente sobre vendas pagas pelo cliente.`}
       >
         <SummaryGrid columns={4}>
-          <StatCard label="Semana: comissao consolidada" value={formatCurrency(weeklyClosingSummary.total)} />
-          <StatCard label="Semana: ja paga ao funcionario" value={formatCurrency(weeklyClosingSummary.paid)} />
+          <StatCard label="Semana: comissão consolidada" value={formatCurrency(weeklyClosingSummary.total)} />
+          <StatCard label="Semana: já paga ao funcionário" value={formatCurrency(weeklyClosingSummary.paid)} />
           <StatCard label="Semana: em aberto (equipe)" value={formatCurrency(weeklyClosingSummary.open)} />
-          <StatCard label="Funcionarios pendentes" value={weeklyClosingSummary.pendingCount} hint={weeklyClosingSummary.statusText} />
+          <StatCard label="Funcionários pendentes" value={weeklyClosingSummary.pendingCount} hint={weeklyClosingSummary.statusText} />
         </SummaryGrid>
         <div className="mt-3 rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-300">
           <p className="inline-flex items-center gap-2">
@@ -446,11 +446,11 @@ export function AdminDashboardPage() {
 
       <SectionCard
         title="Atendimentos recentes"
-        subtitle="Movimentacoes mais recentes para acompanhamento rapido da operacao."
+        subtitle="Movimentações mais recentes para acompanhamento rápido da operação."
       >
         <DataTable
           columns={[
-            { key: 'data_hora', label: 'Horario/Data', render: (row) => formatDateTime(row.data_hora) },
+            { key: 'data_hora', label: 'Horário/data', render: (row) => formatDateTime(row.data_hora) },
             { key: 'cliente_nome', label: 'Cliente' },
             {
               key: 'pagamento',
@@ -472,7 +472,7 @@ export function AdminDashboardPage() {
             },
             {
               key: 'servico',
-              label: 'Servico(s)',
+              label: 'Serviço(s)',
               render: (row) => (
                 <div className="space-y-1">
                   {row.servicoResumo?.length > 1 ? (
@@ -482,7 +482,7 @@ export function AdminDashboardPage() {
                         className="inline-flex rounded-full border border-sky-500/30 bg-sky-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-sky-300 transition hover:border-sky-400/50 hover:bg-sky-500/20"
                         onClick={() => toggleComboDetails(row.id)}
                       >
-                        Combo ({row.servicoResumo.length} servicos)
+                        Combo ({row.servicoResumo.length} serviços)
                       </button>
                       {expandedCombos[row.id] ? (
                         <div className="rounded-lg border border-slate-700 bg-slate-950/80 p-2 text-[11px] text-slate-200">
@@ -506,11 +506,11 @@ export function AdminDashboardPage() {
                 </div>
               ),
             },
-            { key: 'usuario', label: 'Funcionario', render: (row) => row.usuario?.nome || '-' },
+            { key: 'usuario', label: 'Funcionário', render: (row) => row.usuario?.nome || '-' },
             { key: 'valor_servico', label: 'Valor total', render: (row) => formatCurrency(row.valor_servico) },
           ]}
           rows={recentAttendances}
-          empty="Nenhuma movimentacao recente encontrada."
+          empty="Nenhuma movimentação recente encontrada."
         />
       </SectionCard>
     </section>

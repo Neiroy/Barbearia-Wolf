@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import {
   hasValidSupabaseConfig,
   signInWithPasswordFallback,
@@ -9,36 +9,76 @@ import {
 const AuthContext = createContext(null)
 const PROFILE_CACHE_KEY = 'barbearia-wolf-profile-cache'
 
+function readCachedProfile() {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.sessionStorage.getItem(PROFILE_CACHE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function persistProfileCache(nextProfile) {
+  if (typeof window === 'undefined') return
+  if (!nextProfile) {
+    window.sessionStorage.removeItem(PROFILE_CACHE_KEY)
+    return
+  }
+  window.sessionStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(nextProfile))
+}
+
+async function withTimeout(promise, timeoutMs = 30000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout de conexão com o Supabase.')), timeoutMs),
+    ),
+  ])
+}
+
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const loadProfile = useCallback(async (userId, options = { throwOnMissing: true, timeoutMs: 12000 }) => {
+    const { data, error } = await withTimeout(
+      supabase.from('usuarios').select('*').eq('id', userId).single(),
+      options.timeoutMs ?? 12000,
+    )
+    if (error) {
+      if (options.throwOnMissing) {
+        setProfile(null)
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.removeItem(PROFILE_CACHE_KEY)
+        }
+        throw new Error('Usuário autenticado sem perfil na tabela usuarios.')
+      }
+      return null
+    }
+    if (!error) {
+      if (data?.ativo === false) {
+        setProfile(null)
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.removeItem(PROFILE_CACHE_KEY)
+        }
+        throw new Error('Seu acesso foi desativado. Fale com o administrador.')
+      }
+      setProfile(data)
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(data))
+      }
+    }
+    return data
+  }, [])
+
   useEffect(() => {
-    function readCachedProfile() {
-      if (typeof window === 'undefined') return null
-      try {
-        const raw = window.sessionStorage.getItem(PROFILE_CACHE_KEY)
-        return raw ? JSON.parse(raw) : null
-      } catch {
-        return null
-      }
-    }
-
-    function persistProfileCache(nextProfile) {
-      if (typeof window === 'undefined') return
-      if (!nextProfile) {
-        window.sessionStorage.removeItem(PROFILE_CACHE_KEY)
-        return
-      }
-      window.sessionStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(nextProfile))
-    }
-
     async function refreshProfileInBackground(userId) {
       try {
         await loadProfile(userId, { throwOnMissing: false, timeoutMs: 5000 })
       } catch {
-        // Mantem perfil atual/cached em caso de oscilacao de rede.
+        // Mantém perfil atual/cached em caso de oscilação de rede.
       }
     }
 
@@ -91,97 +131,60 @@ export function AuthProvider({ children }) {
           refreshProfileInBackground(nextSession.user.id)
         }
       } catch {
-        // Mantem perfil atual em erros transitórios de rede durante refresh de sessao.
+        // Mantém perfil atual em erros transitórios de rede durante refresh de sessão.
       } finally {
         setLoading(false)
       }
     })
 
     return () => listener.subscription.unsubscribe()
-  }, [])
+  }, [loadProfile])
 
-  async function loadProfile(userId, options = { throwOnMissing: true, timeoutMs: 12000 }) {
-    const { data, error } = await withTimeout(
-      supabase.from('usuarios').select('*').eq('id', userId).single(),
-      options.timeoutMs ?? 12000,
-    )
-    if (error) {
-      if (options.throwOnMissing) {
-        setProfile(null)
-        if (typeof window !== 'undefined') {
-          window.sessionStorage.removeItem(PROFILE_CACHE_KEY)
+  const signIn = useCallback(
+    async (email, password) => {
+      if (!hasValidSupabaseConfig) {
+        throw new Error('Configuração do Supabase inválida no .env.')
+      }
+
+      let response
+      try {
+        response = await withTimeout(
+          supabase.auth.signInWithPassword({ email, password }),
+          30000,
+        )
+        const { error } = response
+        if (error) throw error
+      } catch (error) {
+        if (
+          error.message?.includes('Timeout de conexão') ||
+          error.message?.includes('Failed to fetch')
+        ) {
+          const fallbackData = await signInWithPasswordFallback(email, password, 15000)
+          response = { data: { user: fallbackData.user } }
+        } else {
+          throw error
         }
-        throw new Error('Usuario autenticado sem perfil na tabela usuarios.')
       }
-      return null
-    }
-    if (!error) {
-      if (data?.ativo === false) {
-        setProfile(null)
-        if (typeof window !== 'undefined') {
-          window.sessionStorage.removeItem(PROFILE_CACHE_KEY)
-        }
-        throw new Error('Seu acesso foi desativado. Fale com o administrador.')
-      }
-      setProfile(data)
-      if (typeof window !== 'undefined') {
-        window.sessionStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(data))
-      }
-    }
-    return data
-  }
 
-  async function withTimeout(promise, timeoutMs = 30000) {
-    return Promise.race([
-      promise,
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout de conexão com o Supabase.')), timeoutMs),
-      ),
-    ])
-  }
+      const userId = response?.data?.user?.id
+      if (!userId) throw new Error('Falha ao obter usuário autenticado.')
 
-  async function signIn(email, password) {
-    if (!hasValidSupabaseConfig) {
-      throw new Error('Configuracao do Supabase invalida no .env.')
-    }
+      await withTimeout(loadProfile(userId, { throwOnMissing: true }), 12000)
+    },
+    [loadProfile],
+  )
 
-    let response
-    try {
-      response = await withTimeout(
-        supabase.auth.signInWithPassword({ email, password }),
-        30000,
-      )
-      const { error } = response
-      if (error) throw error
-    } catch (error) {
-      if (
-        error.message?.includes('Timeout de conexão') ||
-        error.message?.includes('Failed to fetch')
-      ) {
-        const fallbackData = await signInWithPasswordFallback(email, password, 15000)
-        response = { data: { user: fallbackData.user } }
-      } else {
-        throw error
-      }
-    }
-
-    const userId = response?.data?.user?.id
-    if (!userId) throw new Error('Falha ao obter usuario autenticado.')
-
-    await withTimeout(loadProfile(userId, { throwOnMissing: true }), 12000)
-  }
-
-  async function signOut() {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut()
     setProfile(null)
     if (typeof window !== 'undefined') {
       window.sessionStorage.removeItem(PROFILE_CACHE_KEY)
     }
-  }
+  }, [])
 
   const value = useMemo(
     () => ({ session, profile, loading, signIn, signOut }),
-    [session, profile, loading],
+    [session, profile, loading, signIn, signOut],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

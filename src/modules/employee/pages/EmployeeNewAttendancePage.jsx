@@ -48,8 +48,8 @@ export function EmployeeNewAttendancePage() {
   )
   const isAdmin = profile?.tipo === 'admin'
   const receivesCommission = Boolean(profile?.recebe_comissao)
-  const dashboardLabel = isAdmin ? 'Admin' : 'Funcionario'
-  const operationBadge = isAdmin ? 'Operacao administrativa' : 'Ordem de chegada'
+  const dashboardLabel = isAdmin ? 'Admin' : 'Funcionário'
+  const operationBadge = isAdmin ? 'Operação administrativa' : 'Ordem de chegada'
   const goToAttendancesPath = isAdmin ? '/admin/atendimentos' : '/funcionario/meus-atendimentos'
   const comissaoEstimada = useMemo(
     () => (receivesCommission ? (valorFinal * Number(profile?.percentual_comissao || 0)) / 100 : 0),
@@ -76,7 +76,7 @@ export function EmployeeNewAttendancePage() {
       return
     }
     if (!selectedServices.length) {
-      setError('Selecione ao menos um servico para continuar.')
+      setError('Selecione ao menos um serviço para continuar.')
       return
     }
     const hasInvalidEditableValue = selectedServices.some(
@@ -85,7 +85,7 @@ export function EmployeeNewAttendancePage() {
         !(parseCurrencyInput(form.valores_personalizados?.[service.id]) > 0),
     )
     if (hasInvalidEditableValue) {
-      setError('Preencha o valor final de todos os servicos com valor flexivel.')
+      setError('Preencha o valor final de todos os serviços com valor flexível.')
       return
     }
     setSaving(true)
@@ -104,7 +104,7 @@ export function EmployeeNewAttendancePage() {
         })),
       })
       setFeedback(
-        `${selectedServices.length} servico(s) lancado(s) com sucesso. Pronto para o proximo atendimento.`,
+        `${selectedServices.length} serviço(s) lançado(s) com sucesso. Pronto para o próximo atendimento.`,
       )
       if (submitMode === 'list') {
         navigate(goToAttendancesPath)
@@ -132,8 +132,8 @@ export function EmployeeNewAttendancePage() {
     <section className="space-y-6 pb-6">
       <PageHeader
         eyebrow={dashboardLabel}
-        title="Lancar atendimento"
-        description="Registre rapidamente o servico realizado no atendimento atual. Fluxo simples para operacao diaria."
+        title="Lançar atendimento"
+        description="Registre rapidamente o serviço realizado no atendimento atual. Fluxo simples para operação diária."
         actions={
           <div className="inline-flex items-center gap-2 rounded-full border border-sky-500/30 bg-sky-500/10 px-3 py-1.5 text-xs uppercase tracking-wide text-sky-300">
             <Sparkles size={13} />
@@ -142,7 +142,7 @@ export function EmployeeNewAttendancePage() {
         }
       />
       <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
-        <SectionCard title="Novo atendimento" subtitle="Selecione o servico e conclua em poucos cliques.">
+        <SectionCard title="Novo atendimento" subtitle="Selecione o serviço e conclua em poucos cliques.">
           <form onSubmit={handleSubmit} className="space-y-4">
             <FormField label="Cliente">
               <input
@@ -165,7 +165,7 @@ export function EmployeeNewAttendancePage() {
             </FormField>
 
             <div>
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">Servicos</p>
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">Serviços</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {services.map((service) => {
                   const selected = form.servico_ids.includes(service.id)
@@ -182,7 +182,7 @@ export function EmployeeNewAttendancePage() {
                     >
                       <p className="text-sm font-semibold text-slate-100">{service.nome}</p>
                       <p className="mt-1 text-xs text-slate-400">
-                        {service.valor_editavel ? 'Valor flexivel' : 'Valor fixo'}
+                        {service.valor_editavel ? 'Valor flexível' : 'Valor fixo'}
                       </p>
                       <p className="mt-2 text-sm font-medium text-sky-300">
                         {service.valor_editavel
@@ -198,7 +198,7 @@ export function EmployeeNewAttendancePage() {
             {selectedServices.some((service) => service.valor_editavel) ? (
               <div className="space-y-2">
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  Valores finais (servicos flexiveis)
+                  Valores finais (serviços flexíveis)
                 </p>
                 {selectedServices
                   .filter((service) => service.valor_editavel)
@@ -233,7 +233,7 @@ export function EmployeeNewAttendancePage() {
                 disabled={saving || form.servico_ids.length === 0}
                 onClick={() => setSubmitMode('next')}
               >
-                {saving && submitMode === 'next' ? 'Salvando...' : 'Salvar e lancar proximo'}
+                {saving && submitMode === 'next' ? 'Salvando...' : 'Salvar e lançar próximo'}
               </button>
               <button
                 type="submit"
@@ -249,26 +249,26 @@ export function EmployeeNewAttendancePage() {
 
         <SectionCard
           title="Resumo do atendimento"
-          subtitle="Confirmacao em tempo real antes de finalizar."
+          subtitle="Confirmação em tempo real antes de finalizar."
         >
           <div className="space-y-3">
             <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Servico selecionado</p>
+              <p className="text-xs uppercase tracking-wide text-slate-500">Serviço selecionado</p>
               <p className="mt-1 font-medium text-slate-100">
                 {selectedServices.length
                   ? selectedServices.map((service) => service.nome).join(' + ')
-                  : 'Nao selecionado'}
+                  : 'Não selecionado'}
               </p>
             </div>
             <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Valor do servico</p>
+              <p className="text-xs uppercase tracking-wide text-slate-500">Valor do serviço</p>
               <p className="mt-1 font-semibold text-sky-300">{formatCurrency(valorFinal)}</p>
             </div>
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
               <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
                 <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-500">
                   <UserRound size={13} />
-                  Funcionario
+                  Funcionário
                 </p>
                 <p className="mt-1 text-sm text-slate-100">{profile?.nome || '-'}</p>
               </div>
@@ -283,7 +283,7 @@ export function EmployeeNewAttendancePage() {
             <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-3">
               <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-sky-300">
                 <ClipboardList size={13} />
-                {receivesCommission ? 'Comissao estimada' : 'Comissao (nao aplicavel)'}
+                {receivesCommission ? 'Comissão estimada' : 'Comissão (não aplicável)'}
               </p>
               <p className="mt-1 text-lg font-semibold text-sky-300">{formatCurrency(comissaoEstimada)}</p>
             </div>
@@ -301,8 +301,8 @@ export function EmployeeNewAttendancePage() {
 
       {services.length === 0 ? (
         <EmptyState
-          title="Nenhum servico ativo"
-          description="Solicite ao admin o cadastro de servicos para iniciar os lancamentos."
+          title="Nenhum serviço ativo"
+          description="Solicite ao admin o cadastro de serviços para iniciar os lançamentos."
         />
       ) : null}
     </section>

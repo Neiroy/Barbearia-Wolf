@@ -19,8 +19,8 @@ import { formatCurrency, formatDateTime } from '../../../utils/formatters'
 const PAYMENT_FORMS = [
   { value: 'pix', label: 'PIX' },
   { value: 'dinheiro', label: 'Dinheiro' },
-  { value: 'cartao_credito', label: 'Cartao credito' },
-  { value: 'cartao_debito', label: 'Cartao debito' },
+  { value: 'cartao_credito', label: 'Cartão de crédito' },
+  { value: 'cartao_debito', label: 'Cartão de débito' },
   { value: 'outros', label: 'Outros' },
 ]
 
@@ -194,39 +194,39 @@ export function EmployeeMyAttendancesPage() {
   return (
     <section className="space-y-6 pb-6">
       <PageHeader
-        eyebrow="Funcionario"
+        eyebrow="Funcionário"
         title="Meus atendimentos"
-        description="Historico profissional dos seus atendimentos, vendas e comissoes."
+        description="Histórico profissional dos seus atendimentos, vendas e comissões."
         actions={
           <div className="inline-flex items-center gap-2 rounded-full border border-sky-500/30 bg-sky-500/10 px-3 py-1.5 text-xs uppercase tracking-wide text-sky-300">
             <CalendarRange size={13} />
-            {period === 'all' ? 'Periodo completo' : 'Periodo filtrado'}
+            {period === 'all' ? 'Período completo' : 'Período filtrado'}
           </div>
         }
       />
 
       <SummaryGrid columns={5}>
-        <StatCard label="Atendimentos" value={totals.totalAtendimentos} hint="No periodo selecionado" />
-        <StatCard label="Realizado" value={formatCurrency(totals.totalVendido)} hint="Servicos executados" />
+        <StatCard label="Atendimentos" value={totals.totalAtendimentos} hint="No período selecionado" />
+        <StatCard label="Realizado" value={formatCurrency(totals.totalVendido)} hint="Serviços executados" />
         <StatCard label="Recebido (cliente pagou)" value={formatCurrency(totals.totalRecebido)} hint="Caixa confirmado" />
         <StatCard label="Pendente (cliente)" value={formatCurrency(totals.totalPendenteCliente)} hint="Aguardando pagamento" />
         <StatCard
-          label={receivesCommission ? 'Comissao valida' : 'Comissao (nao aplicavel)'}
+          label={receivesCommission ? 'Comissão válida' : 'Comissão (não aplicável)'}
           value={formatCurrency(totals.totalComissao)}
-          hint={receivesCommission ? 'Sobre vendas ja pagas' : 'Este perfil nao recebe comissao'}
+          hint={receivesCommission ? 'Sobre vendas já pagas' : 'Este perfil não recebe comissão'}
         />
       </SummaryGrid>
       <SummaryGrid columns={2}>
         <StatCard
-          label="Ticket medio"
+          label="Ticket médio"
           value={formatCurrency(totals.ticketMedio)}
-          hint={totals.ultimoAtendimento ? `Ultimo: ${formatDateTime(totals.ultimoAtendimento)}` : 'Sem registros'}
+          hint={totals.ultimoAtendimento ? `Último: ${formatDateTime(totals.ultimoAtendimento)}` : 'Sem registros'}
         />
       </SummaryGrid>
 
       <SectionCard
         title="Consulta de atendimentos"
-        subtitle="Filtre por periodo, cliente e servico para encontrar rapidamente o que precisa."
+        subtitle="Filtre por período, cliente e serviço para encontrar rapidamente o que precisa."
       >
         <Toolbar>
           <div className="grid w-full gap-2 md:grid-cols-2 xl:grid-cols-6">
@@ -248,10 +248,10 @@ export function EmployeeMyAttendancesPage() {
                 value={period}
                 onChange={(event) => setPeriod(event.target.value)}
               >
-                <option value="7d">Ultimos 7 dias</option>
-                <option value="30d">Ultimos 30 dias</option>
-                <option value="month">Mes atual</option>
-                <option value="all">Periodo completo</option>
+                <option value="7d">Últimos 7 dias</option>
+                <option value="30d">Últimos 30 dias</option>
+                <option value="month">Mês atual</option>
+                <option value="all">Período completo</option>
               </select>
             </label>
 
@@ -263,7 +263,7 @@ export function EmployeeMyAttendancesPage() {
                 value={serviceFilter}
                 onChange={(event) => setServiceFilter(event.target.value)}
               >
-                <option value="all">Todos os servicos</option>
+                <option value="all">Todos os serviços</option>
                 {uniqueServices.map((service) => (
                   <option key={service} value={service}>
                     {service}
@@ -280,7 +280,7 @@ export function EmployeeMyAttendancesPage() {
                 value={paymentFilter}
                 onChange={(event) => setPaymentFilter(event.target.value)}
               >
-                <option value="all">Todos pagamentos</option>
+                <option value="all">Todos os pagamentos</option>
                 <option value="pagos">Pagos</option>
                 <option value="pendentes">Pendentes</option>
               </select>
@@ -305,7 +305,7 @@ export function EmployeeMyAttendancesPage() {
           <div className="mt-4">
             <EmptyState
               title="Nenhum atendimento encontrado"
-              description="Ajuste os filtros ou registre novos atendimentos para acompanhar seu historico."
+              description="Ajuste os filtros ou registre novos atendimentos para acompanhar seu histórico."
             />
           </div>
         ) : (
@@ -356,7 +356,7 @@ export function EmployeeMyAttendancesPage() {
                 },
                 {
                   key: 'servico',
-                  label: 'Servico',
+                  label: 'Serviço',
                   render: (row) => (
                     <div className="space-y-1">
                       {row.isCombo ? (
@@ -366,7 +366,7 @@ export function EmployeeMyAttendancesPage() {
                             className="inline-flex rounded-full border border-sky-500/30 bg-sky-500/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-sky-300 transition hover:border-sky-400/50 hover:bg-sky-500/20"
                             onClick={() => toggleComboDetails(row.id)}
                           >
-                            Combo ({row.servicos.length} servicos)
+                            Combo ({row.servicos.length} serviços)
                           </button>
                           {expandedCombos[row.id] ? (
                             <div className="rounded-lg border border-slate-700 bg-slate-950/80 p-2 text-[11px] text-slate-200">
@@ -399,7 +399,7 @@ export function EmployeeMyAttendancesPage() {
                 },
                 {
                   key: 'valor_comissao',
-                  label: 'Comissao',
+                  label: 'Comissão',
                   render: (row) => (
                     <span className="inline-flex items-center gap-1 font-semibold text-sky-300">
                       <Wallet size={13} />
@@ -409,7 +409,7 @@ export function EmployeeMyAttendancesPage() {
                 },
                 {
                   key: 'acao',
-                  label: 'Acao',
+                  label: 'Ação',
                   render: (row) => {
                     const st = row.venda?.status_pagamento
                     const canPay = row.venda_id && (st === 'pendente' || st === 'parcial')
@@ -441,7 +441,7 @@ export function EmployeeMyAttendancesPage() {
               <div className="flex flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
                 <div className="inline-flex items-center gap-2 rounded-md border border-slate-700 px-2 py-1">
                   <label htmlFor="items-per-page" className="text-xs text-slate-400">
-                    Itens/pagina
+                    Itens/página
                   </label>
                   <select
                     id="items-per-page"
@@ -471,7 +471,7 @@ export function EmployeeMyAttendancesPage() {
                   Anterior
                 </button>
                 <span className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-300">
-                  Pagina {currentPage} de {totalPages}
+                  Página {currentPage} de {totalPages}
                 </span>
                 <div className="hidden items-center gap-1 md:inline-flex">
                   {Array.from({ length: totalPages }, (_, index) => index + 1)
@@ -497,7 +497,7 @@ export function EmployeeMyAttendancesPage() {
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage((old) => Math.min(totalPages, old + 1))}
                 >
-                  Proxima
+                  Próxima
                   <ChevronRight size={14} />
                 </button>
               </div>
@@ -510,7 +510,7 @@ export function EmployeeMyAttendancesPage() {
           <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-xl">
             <h3 className="text-lg font-semibold text-slate-100">Confirmar recebimento</h3>
             <p className="mt-2 text-sm text-slate-400">
-              Marcar esta venda como paga. A comissao valida so e aplicada apos esta confirmacao.
+              Marcar esta venda como paga. A comissão válida só é aplicada após esta confirmação.
             </p>
             <label className="mt-4 block text-xs font-medium uppercase tracking-wide text-slate-400">
               Forma de pagamento

@@ -20,5 +20,5 @@ export function getBarberWeekRange(referenceDate = dayjs()) {
 
 export function formatBarberWeekLabel(referenceDate = dayjs(), dateFormat = 'DD/MM/YYYY') {
   const range = getBarberWeekRange(referenceDate)
-  return `${range.start.format(dateFormat)} ate ${range.end.format(dateFormat)}`
+  return `${range.start.format(dateFormat)} até ${range.end.format(dateFormat)}`
 }

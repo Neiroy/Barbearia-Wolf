@@ -34,7 +34,7 @@ export function LoginPage() {
     event.preventDefault()
     setError('')
     if (!hasValidSupabaseConfig) {
-      setError('Configuracao do Supabase invalida no .env.')
+      setError('Configuração do Supabase inválida no .env.')
       return
     }
     setLoading(true)
@@ -48,7 +48,7 @@ export function LoginPage() {
       } else if (err.message?.includes('Timeout de conexão')) {
         setError('Tempo de conexão excedido com o Supabase. Tente novamente em instantes.')
       } else if (err.message?.includes('sem perfil na tabela usuarios')) {
-        setError('Login realizado, mas falta vincular o usuario na tabela public.usuarios.')
+        setError('Login realizado, mas falta vincular o usuário na tabela public.usuarios.')
       } else {
         setError(err.message ?? 'Falha no login')
       }
@@ -75,7 +75,7 @@ export function LoginPage() {
           </div>
           <p className="mt-4 text-xs uppercase tracking-[0.3em] text-sky-400">BarbeariaWolf</p>
           <h1 className="mt-2 text-3xl font-semibold text-white">Painel de Acesso</h1>
-          <p className="mt-2 text-sm text-slate-400">Sistema interno para admin e funcionario.</p>
+          <p className="mt-2 text-sm text-slate-400">Sistema interno para admin e funcionário.</p>
         </div>
         {!connectionState.ok && !connectionState.loading ? (
           <p className="mt-3 text-sm text-sky-300">{connectionState.message}</p>

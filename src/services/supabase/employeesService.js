@@ -29,7 +29,7 @@ export async function setEmployeeStatus({ id, ativo, excluirLogico = false }) {
 
 export async function reactivateEmployeeByEmail(email) {
   const normalizedEmail = String(email || '').trim().toLowerCase()
-  if (!normalizedEmail) throw new Error('E-mail invalido para reativacao.')
+  if (!normalizedEmail) throw new Error('E-mail inválido para reativação.')
 
   const { data, error } = await supabase
     .from('usuarios')
@@ -43,7 +43,7 @@ export async function reactivateEmployeeByEmail(email) {
     .maybeSingle()
 
   if (error) throw error
-  if (!data) throw new Error('Funcionario nao encontrado para reativacao.')
+  if (!data) throw new Error('Funcionário não encontrado para reativação.')
   return data
 }
 
@@ -66,7 +66,7 @@ export async function createEmployeeAuthUser({
   const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL ?? '').trim()
   const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? '').trim()
   const localPart = normalizeEmailLocalPart(emailLocalPart || nome)
-  if (!localPart) throw new Error('Informe um nome de usuario valido para o e-mail.')
+  if (!localPart) throw new Error('Informe um nome de usuário válido para o e-mail.')
 
   const email = `${localPart}@barbeariawolf.com`
 
@@ -81,9 +81,9 @@ export async function createEmployeeAuthUser({
   if (existingUser) {
     const isInactive = existingUser.ativo === false || existingUser.excluido_logico_em != null
     if (isInactive) {
-      throw new Error('Ja existe um funcionario com este e-mail (inativo). Reative o perfil existente.')
+      throw new Error('Já existe um funcionário com este e-mail (inativo). Reative o perfil existente.')
     }
-    throw new Error('Ja existe um funcionario com este e-mail.')
+    throw new Error('Já existe um funcionário com este e-mail.')
   }
 
   const isolatedClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -109,11 +109,11 @@ export async function createEmployeeAuthUser({
 
   const userId = data.user?.id || null
   if (!userId) {
-    throw new Error('Nao foi possivel obter o ID do usuario criado no Auth.')
+    throw new Error('Não foi possível obter o ID do usuário criado no Auth.')
   }
 
-  // Fallback de consistencia: garante o perfil em public.usuarios
-  // mesmo quando o trigger auth.users -> public.usuarios nao rodou.
+  // Fallback de consistência: garante o perfil em public.usuarios
+  // mesmo quando o trigger auth.users -> public.usuarios não rodou.
   const { error: upsertError } = await supabase.from('usuarios').upsert(
     {
       id: userId,
@@ -133,7 +133,7 @@ export async function createEmployeeAuthUser({
 
   if (upsertError) {
     if (upsertError.code === '23505' || upsertError.message?.includes('usuarios_email_key')) {
-      throw new Error('Ja existe um funcionario com este e-mail.')
+      throw new Error('Já existe um funcionário com este e-mail.')
     }
     throw upsertError
   }

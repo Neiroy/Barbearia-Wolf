@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { getBarberWeekRange } from './dateRanges'
 
 describe('dateRanges semana fixa da barbearia', () => {
-  it('retorna ciclo terca a sabado para uma data no meio da semana', () => {
+  it('retorna ciclo terça a sábado para uma data no meio da semana', () => {
     const range = getBarberWeekRange('2026-04-23')
     expect(range.startDate).toBe('2026-04-21')
     expect(range.endDate).toBe('2026-04-25')

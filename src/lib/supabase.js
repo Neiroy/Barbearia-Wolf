@@ -6,8 +6,8 @@ const urlIsValid = /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supabaseUrl)
 const keyIsValid = supabaseAnonKey.length > 20
 const authStorage = typeof window !== 'undefined' ? window.sessionStorage : undefined
 
-if (!urlIsValid || !keyIsValid) {
-  console.warn('Variaveis Supabase invalidas. Revise VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.')
+if (import.meta.env.DEV && (!urlIsValid || !keyIsValid)) {
+  console.warn('Variáveis Supabase inválidas. Revise VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.')
 }
 
 export const hasValidSupabaseConfig = urlIsValid && keyIsValid
@@ -28,7 +28,7 @@ export const supabase = createClient(
 
 export async function checkSupabaseConnection(timeoutMs = 8000) {
   if (!hasValidSupabaseConfig) {
-    return { ok: false, message: 'Configuracao do Supabase invalida no .env.' }
+    return { ok: false, message: 'Configuração do Supabase inválida no .env.' }
   }
 
   const timeoutPromise = new Promise((_, reject) =>
@@ -45,18 +45,18 @@ export async function checkSupabaseConnection(timeoutMs = 8000) {
     if (!response.ok) {
       return { ok: false, message: 'Supabase respondeu com erro. Verifique URL e chave anon.' }
     }
-    return { ok: true, message: 'Conexao com Supabase OK.' }
+    return { ok: true, message: 'Conexão com Supabase OK.' }
   } catch {
     return {
       ok: false,
-      message: 'Nao foi possivel conectar ao Supabase (rede, firewall, proxy ou DNS).',
+      message: 'Não foi possível conectar ao Supabase (rede, firewall, proxy ou DNS).',
     }
   }
 }
 
 export async function signInWithPasswordFallback(email, password, timeoutMs = 15000) {
   if (!hasValidSupabaseConfig) {
-    throw new Error('Configuracao do Supabase invalida no .env.')
+    throw new Error('Configuração do Supabase inválida no .env.')
   }
 
   const timeoutPromise = new Promise((_, reject) =>

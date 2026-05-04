@@ -24,6 +24,6 @@ export function captureAppError(error, context = {}) {
       keepalive: true,
     }).catch(() => {})
   } catch {
-    // Ignora falhas de telemetria para nao impactar a aplicacao.
+    // Ignora falhas de telemetria para não impactar a aplicação.
   }
 }
