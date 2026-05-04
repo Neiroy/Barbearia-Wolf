@@ -56,6 +56,17 @@ Use este guia depois das melhorias no código. Ajuste nomes de branch se o seu p
 4. Pasta de saída: `dist` (padrão Vite)
 5. Faça um deploy de teste e valide login e telas principais.
 
+### Netlify (site [barbeariawolf.netlify.app](https://barbeariawolf.netlify.app/))
+
+O repositório já tem `netlify.toml` (build, `dist`, redirect SPA e headers). Falta só as variáveis no painel:
+
+1. Acesse [app.netlify.com](https://app.netlify.com) e abra o site **Barbearia Wolf** (ou o nome que aparecer no dashboard).
+2. **Site configuration** → **Environment variables** (ou **Build & deploy** → **Environment**).
+3. Adicione (escopo **Production** e, se quiser testar PR previews, também **Deploy previews**):
+   - `VITE_SUPABASE_URL` = URL do projeto (ex.: `https://xxxx.supabase.co`)
+   - `VITE_SUPABASE_ANON_KEY` = chave **anon** do Supabase (mesma do `.env` local; não use `service_role`).
+4. Salve e rode **Deploys** → **Trigger deploy** → **Clear cache and deploy site** (garante que o Vite recompila com as novas variáveis).
+
 ## 6. Supabase CLI local (opcional)
 
 1. Com [Supabase CLI](https://supabase.com/docs/guides/cli) instalado:
