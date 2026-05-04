@@ -4,6 +4,7 @@ import { CalendarRange, ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign
 import { Link } from 'react-router-dom'
 import { DataTable } from '../../../components/ui/DataTable'
 import { EmptyState, LoadingState } from '../../../components/ui/FeedbackStates'
+import { PageFrame } from '../../../components/ui/PageFrame'
 import { PageHeader } from '../../../components/ui/PageHeader'
 import { StatCard } from '../../../components/ui/StatCard'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
@@ -264,7 +265,7 @@ export function AdminAttendancesPage() {
   }
 
   return (
-    <section className="space-y-6 pb-6">
+    <PageFrame>
       <PageHeader
         eyebrow="Admin"
         title="Atendimentos"
@@ -671,6 +672,6 @@ export function AdminAttendancesPage() {
           </div>
         </div>
       ) : null}
-    </section>
+    </PageFrame>
   )
 }

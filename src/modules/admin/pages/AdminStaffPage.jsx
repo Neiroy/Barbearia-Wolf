@@ -3,6 +3,7 @@ import { BadgePercent, ChevronDown, Filter, RefreshCw, Search, ShieldCheck, User
 import { DataTable } from '../../../components/ui/DataTable'
 import { EmptyState, LoadingState } from '../../../components/ui/FeedbackStates'
 import { FormField } from '../../../components/ui/FormFields'
+import { PageFrame } from '../../../components/ui/PageFrame'
 import { PageHeader } from '../../../components/ui/PageHeader'
 import { SectionCard } from '../../../components/ui/SectionCard'
 import { StatCard } from '../../../components/ui/StatCard'
@@ -90,7 +91,7 @@ export function AdminStaffPage() {
   if (loading) return <LoadingState label="Carregando equipe..." />
 
   return (
-    <section className="space-y-6 pb-6">
+    <PageFrame>
       <PageHeader
         eyebrow="Admin"
         title="Funcionários"
@@ -570,6 +571,6 @@ export function AdminStaffPage() {
           </div>
         )}
       </SectionCard>
-    </section>
+    </PageFrame>
   )
 }

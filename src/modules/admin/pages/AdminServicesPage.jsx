@@ -3,6 +3,7 @@ import { ChevronDown, Filter, Pencil, PlusCircle, Scissors, Search, SlidersHoriz
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog'
 import { FormField } from '../../../components/ui/FormFields'
 import { EmptyState, LoadingState } from '../../../components/ui/FeedbackStates'
+import { PageFrame } from '../../../components/ui/PageFrame'
 import { PageHeader } from '../../../components/ui/PageHeader'
 import { SectionCard } from '../../../components/ui/SectionCard'
 import { StatCard } from '../../../components/ui/StatCard'
@@ -69,7 +70,7 @@ export function AdminServicesPage() {
   if (loading) return <LoadingState label="Carregando catálogo de serviços..." />
 
   return (
-    <section className="space-y-6 pb-6">
+    <PageFrame>
       <PageHeader
         eyebrow="Admin"
         title="Serviços"
@@ -304,6 +305,6 @@ export function AdminServicesPage() {
           }
         }}
       />
-    </section>
+    </PageFrame>
   )
 }

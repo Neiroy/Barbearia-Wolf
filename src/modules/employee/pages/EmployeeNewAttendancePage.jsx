@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { EmptyState } from '../../../components/ui/FeedbackStates'
 import { FormField } from '../../../components/ui/FormFields'
+import { PageFrame } from '../../../components/ui/PageFrame'
 import { PageHeader } from '../../../components/ui/PageHeader'
 import { SectionCard } from '../../../components/ui/SectionCard'
 import { listServices, saveAttendanceBatch } from '../../../services/supabase'
@@ -129,7 +130,7 @@ export function EmployeeNewAttendancePage() {
   }
 
   return (
-    <section className="space-y-6 pb-6">
+    <PageFrame>
       <PageHeader
         eyebrow={dashboardLabel}
         title="Lançar atendimento"
@@ -305,6 +306,6 @@ export function EmployeeNewAttendancePage() {
           description="Solicite ao admin o cadastro de serviços para iniciar os lançamentos."
         />
       ) : null}
-    </section>
+    </PageFrame>
   )
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import dayjs from 'dayjs'
+import { PageFrame } from '../../../components/ui/PageFrame'
 import { PageHeader } from '../../../components/ui/PageHeader'
 import { SectionCard } from '../../../components/ui/SectionCard'
 import { DataTable } from '../../../components/ui/DataTable'
@@ -41,7 +42,7 @@ export function AdminHistoriesPage() {
   }, [showToast])
 
   return (
-    <section className="space-y-5 pb-6">
+    <PageFrame>
       <PageHeader
         eyebrow="Admin"
         title="Históricos"
@@ -125,6 +126,6 @@ export function AdminHistoriesPage() {
           empty="Nenhum pagamento registrado."
         />
       </SectionCard>
-    </section>
+    </PageFrame>
   )
 }

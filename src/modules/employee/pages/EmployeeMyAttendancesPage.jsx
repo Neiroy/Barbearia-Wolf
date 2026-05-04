@@ -4,6 +4,7 @@ import { CalendarRange, ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign
 import { useAuth } from '../../../context/AuthContext'
 import { useToast } from '../../../context/ToastContext'
 import { DataTable } from '../../../components/ui/DataTable'
+import { PageFrame } from '../../../components/ui/PageFrame'
 import { PageHeader } from '../../../components/ui/PageHeader'
 import { SectionCard } from '../../../components/ui/SectionCard'
 import { StatCard } from '../../../components/ui/StatCard'
@@ -192,7 +193,7 @@ export function EmployeeMyAttendancesPage() {
   if (loading) return <LoadingState label="Carregando seus atendimentos..." />
 
   return (
-    <section className="space-y-6 pb-6">
+    <PageFrame>
       <PageHeader
         eyebrow="Funcionário"
         title="Meus atendimentos"
@@ -558,6 +559,6 @@ export function EmployeeMyAttendancesPage() {
           </div>
         </div>
       ) : null}
-    </section>
+    </PageFrame>
   )
 }

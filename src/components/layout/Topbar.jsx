@@ -8,7 +8,7 @@ export function Topbar({ onMenuToggle }) {
   })
 
   return (
-    <header className="mb-6 flex flex-col gap-3 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-3 sm:px-4 md:flex-row md:items-center md:justify-between">
+    <header className="mb-8 flex flex-col gap-3 rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-3.5 sm:px-5 md:flex-row md:items-center md:justify-between">
       <div className="flex items-center gap-2">
         {onMenuToggle ? (
           <button

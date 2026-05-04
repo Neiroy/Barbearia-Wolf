@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import { BadgeDollarSign, CalendarCheck2, Download, Landmark, TrendingUp, Users, Wallet } from 'lucide-react'
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { StatusBadge } from '../../../components/ui/StatusBadge'
+import { PageFrame } from '../../../components/ui/PageFrame'
 import { PageHeader } from '../../../components/ui/PageHeader'
 import { StatCard } from '../../../components/ui/StatCard'
 import { CurrencyCard, SummaryGrid } from '../../../components/ui/SummaryGrid'
@@ -200,7 +201,7 @@ export function AdminDashboardPage() {
   if (error) return <ErrorState message={error} />
 
   return (
-    <section className="space-y-6 pb-6">
+    <PageFrame>
       <PageHeader
         eyebrow="Admin"
         title="Centro de gestão"
@@ -513,6 +514,6 @@ export function AdminDashboardPage() {
           empty="Nenhuma movimentação recente encontrada."
         />
       </SectionCard>
-    </section>
+    </PageFrame>
   )
 }

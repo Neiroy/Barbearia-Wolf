@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
+import { PageFrame } from '../../../components/ui/PageFrame'
 import { PageHeader } from '../../../components/ui/PageHeader'
 import { SectionCard } from '../../../components/ui/SectionCard'
 import { SummaryGrid } from '../../../components/ui/SummaryGrid'
@@ -69,7 +70,7 @@ export function AdminCommissionsPage() {
   }
 
   return (
-    <section className="space-y-5 pb-6">
+    <PageFrame>
       <PageHeader
         eyebrow="Admin"
         title="Comissões"
@@ -173,6 +174,6 @@ export function AdminCommissionsPage() {
           empty="Nenhum pagamento de comissão registrado."
         />
       </SectionCard>
-    </section>
+    </PageFrame>
   )
 }

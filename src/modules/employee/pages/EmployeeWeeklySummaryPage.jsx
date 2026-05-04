@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import { CalendarRange, CalendarSearch, DollarSign, Receipt, Scissors, TrendingUp, Wallet } from 'lucide-react'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useAuth } from '../../../context/AuthContext'
+import { PageFrame } from '../../../components/ui/PageFrame'
 import { PageHeader } from '../../../components/ui/PageHeader'
 import { SectionCard } from '../../../components/ui/SectionCard'
 import { StatCard } from '../../../components/ui/StatCard'
@@ -67,7 +68,7 @@ export function EmployeeWeeklySummaryPage() {
         : 'Boa semana de operação. Foque em serviços de maior ticket para elevar a comissão.'
 
   return (
-    <section className="space-y-6 pb-6">
+    <PageFrame>
       <PageHeader
         eyebrow="Funcionário"
         title="Resumo semanal"
@@ -171,6 +172,6 @@ export function EmployeeWeeklySummaryPage() {
           Mantenha os lançamentos em dia para ter uma visão precisa de produtividade e resultados financeiros.
         </p>
       </SectionCard>
-    </section>
+    </PageFrame>
   )
 }

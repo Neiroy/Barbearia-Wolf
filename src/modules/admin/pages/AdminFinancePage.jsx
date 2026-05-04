@@ -7,6 +7,7 @@ import { EmptyState } from '../../../components/ui/FeedbackStates'
 import { CurrencyCard, SummaryGrid } from '../../../components/ui/SummaryGrid'
 import { DataTable } from '../../../components/ui/DataTable'
 import { FormField, SelectField } from '../../../components/ui/FormFields'
+import { PageFrame } from '../../../components/ui/PageFrame'
 import { PageHeader } from '../../../components/ui/PageHeader'
 import { SectionCard } from '../../../components/ui/SectionCard'
 import { Toolbar } from '../../../components/ui/Toolbar'
@@ -167,7 +168,7 @@ export function AdminFinancePage() {
   }
 
   return (
-    <section className="space-y-5 pb-6">
+    <PageFrame>
       <PageHeader
         eyebrow="Admin"
         title="Financeiro mensal"
@@ -645,6 +646,6 @@ export function AdminFinancePage() {
           )}
         </SectionCard>
       </div>
-    </section>
+    </PageFrame>
   )
 }

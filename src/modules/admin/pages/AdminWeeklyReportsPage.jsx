@@ -4,6 +4,7 @@ import { ChevronDown, Download, Filter, Search, SlidersHorizontal, UserRound, Wa
 import { DataTable } from '../../../components/ui/DataTable'
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog'
 import { EmptyState, LoadingState } from '../../../components/ui/FeedbackStates'
+import { PageFrame } from '../../../components/ui/PageFrame'
 import { PageHeader } from '../../../components/ui/PageHeader'
 import { SectionCard } from '../../../components/ui/SectionCard'
 import { StatCard } from '../../../components/ui/StatCard'
@@ -294,7 +295,7 @@ export function AdminWeeklyReportsPage() {
   if (loading) return <LoadingState label="Carregando fechamento semanal..." />
 
   return (
-    <section className="space-y-6 pb-6">
+    <PageFrame>
       <PageHeader
         eyebrow="Admin"
         title="Fechamento semanal"
@@ -622,6 +623,6 @@ export function AdminWeeklyReportsPage() {
         onCancel={() => setBulkPayConfirmOpen(false)}
         onConfirm={markVisibleRowsAsPaid}
       />
-    </section>
+    </PageFrame>
   )
 }

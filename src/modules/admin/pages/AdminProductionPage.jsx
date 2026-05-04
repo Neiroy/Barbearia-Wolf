@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { PageFrame } from '../../../components/ui/PageFrame'
 import { PageHeader } from '../../../components/ui/PageHeader'
 import { SummaryGrid } from '../../../components/ui/SummaryGrid'
 import { StatCard } from '../../../components/ui/StatCard'
@@ -87,7 +88,7 @@ export function AdminProductionPage() {
   )
 
   return (
-    <section className="space-y-5 pb-6">
+    <PageFrame>
       <PageHeader
         eyebrow="Admin"
         title="Produção"
@@ -162,6 +163,6 @@ export function AdminProductionPage() {
           />
         )}
       </SectionCard>
-    </section>
+    </PageFrame>
   )
 }
