@@ -13,7 +13,7 @@ import { Toolbar } from '../../../components/ui/Toolbar'
 import { useAuth } from '../../../context/AuthContext'
 import { useToast } from '../../../context/ToastContext'
 import { captureAppError } from '../../../lib/observability'
-import { listAttendances, listWeeklyClosuresHistory, markVendaPago } from '../../../services/supabase'
+import { getAttendanceServiceName, listAttendances, listWeeklyClosuresHistory, markVendaPago } from '../../../services/supabase'
 import { splitRowCashflow } from '../../../utils/financialCalculations'
 import { formatCurrency, formatDateTime } from '../../../utils/formatters'
 
@@ -71,7 +71,7 @@ export function AdminAttendancesPage() {
     [rows],
   )
   const uniqueServices = useMemo(
-    () => Array.from(new Set(rows.map((row) => row.servico?.nome).filter(Boolean))),
+    () => Array.from(new Set(rows.map((row) => getAttendanceServiceName(row)).filter(Boolean))),
     [rows],
   )
   const groupedRows = useMemo(() => {
@@ -95,7 +95,7 @@ export function AdminAttendancesPage() {
       }
       if (row.venda) acc[comboKey].venda = row.venda
       acc[comboKey].servicos.push({
-        nome: row.servico?.nome || '-',
+        nome: getAttendanceServiceName(row) || '-',
         valor: Number(row.valor_servico || 0),
       })
       acc[comboKey].valor_servico += Number(row.valor_servico || 0)

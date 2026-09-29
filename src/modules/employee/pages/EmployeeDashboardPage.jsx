@@ -10,7 +10,7 @@ import { StatCard } from '../../../components/ui/StatCard'
 import { SummaryGrid } from '../../../components/ui/SummaryGrid'
 import { PerformanceKpiCard } from '../components/PerformanceKpiCard'
 import { QuickActionLinks } from '../components/QuickActionLinks'
-import { calculateWeeklySummary, groupAttendancesByCombo, listAttendances } from '../../../services/supabase'
+import { calculateWeeklySummary, getAttendanceServiceName, groupAttendancesByCombo, listAttendances } from '../../../services/supabase'
 import { formatCurrency, formatDateTime } from '../../../utils/formatters'
 import { getBarberWeekRange } from '../../../utils/dateRanges'
 
@@ -95,7 +95,7 @@ export function EmployeeDashboardPage() {
 
       acc[comboKey].valor_servico += Number(row.valor_servico || 0)
       acc[comboKey].servicos.push({
-        nome: row.servico?.nome || '-',
+        nome: getAttendanceServiceName(row) || '-',
         valor: Number(row.valor_servico || 0),
       })
 

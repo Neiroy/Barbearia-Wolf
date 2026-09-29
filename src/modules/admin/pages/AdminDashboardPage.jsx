@@ -12,7 +12,7 @@ import { DataTable } from '../../../components/ui/DataTable'
 import { ErrorState, LoadingState } from '../../../components/ui/FeedbackStates'
 import { PrimaryKpiCard } from '../components/PrimaryKpiCard'
 import { QuickActionLinks } from '../components/QuickActionLinks'
-import { getAdminDashboardSnapshot, groupAttendancesByCombo, listAttendances, listExpenses, listWeeklyClosures } from '../../../services/supabase'
+import { getAdminDashboardSnapshot, getAttendanceServiceName, groupAttendancesByCombo, listAttendances, listExpenses, listWeeklyClosures } from '../../../services/supabase'
 import { getBarberWeekRange } from '../../../utils/dateRanges'
 import { formatCurrency, formatDateTime } from '../../../utils/formatters'
 
@@ -68,7 +68,7 @@ export function AdminDashboardPage() {
             ...group,
             usuario: source?.usuario,
             venda: source?.venda || null,
-            servicoResumo: matchingRows.map((row) => row.servico?.nome || '-'),
+            servicoResumo: matchingRows.map((row) => getAttendanceServiceName(row) || '-'),
             servicoValores: matchingRows.map((row) => Number(row.valor_servico || 0)),
           }
         })

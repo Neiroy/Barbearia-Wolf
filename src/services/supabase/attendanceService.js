@@ -57,7 +57,7 @@ export async function listAttendances(filters = {}) {
   let query = supabase
     .from('atendimentos')
     .select(
-      'id, venda_id, usuario_id, cliente_nome, servico_id, valor_servico, percentual_comissao, valor_comissao, data_hora, created_at, venda:vendas(id,status_pagamento,forma_pagamento,valor_total,valor_pago,data_pagamento,observacao_pagamento), usuario:usuarios(nome,tipo,tipo_remuneracao,recebe_comissao,percentual_comissao,participa_fechamento_comissao), servico:servicos(nome)',
+      'id, venda_id, usuario_id, cliente_nome, servico_id, servico_avulso_nome, valor_servico, percentual_comissao, valor_comissao, data_hora, created_at, venda:vendas(id,status_pagamento,forma_pagamento,valor_total,valor_pago,data_pagamento,observacao_pagamento), usuario:usuarios(nome,tipo,tipo_remuneracao,recebe_comissao,percentual_comissao,participa_fechamento_comissao), servico:servicos(nome)',
     )
     .order('data_hora', { ascending: false })
 
@@ -82,11 +82,31 @@ export async function saveAttendance(payload) {
   if (rpcError) throw rpcError
 }
 
+export function getAttendanceServiceName(row) {
+  const catalogName = typeof row?.servico?.nome === 'string' ? row.servico.nome.trim() : ''
+  if (catalogName) return catalogName
+  const customName = typeof row?.servico_avulso_nome === 'string' ? row.servico_avulso_nome.trim() : ''
+  return customName
+}
+
+export function mapVendaItem(item) {
+  const nomeAvulso = typeof item?.servico_avulso_nome === 'string' ? item.servico_avulso_nome.trim() : ''
+  const valor_informado = Number(item?.valor_servico || 0)
+  if (!item?.servico_id && nomeAvulso) {
+    return {
+      servico_id: null,
+      servico_avulso_nome: nomeAvulso,
+      valor_informado,
+    }
+  }
+  return {
+    servico_id: item?.servico_id,
+    valor_informado,
+  }
+}
+
 export async function saveAttendanceBatch(payload) {
-  const items = (payload.items || []).map((item) => ({
-    servico_id: item.servico_id,
-    valor_informado: Number(item.valor_servico || 0),
-  }))
+  const items = (payload.items || []).map(mapVendaItem)
 
   const { data, error } = await supabase.rpc('registrar_venda', {
     p_usuario_id: payload.usuario_id,

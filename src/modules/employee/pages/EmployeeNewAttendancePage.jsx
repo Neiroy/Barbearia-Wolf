@@ -9,13 +9,25 @@ import { PageFrame } from '../../../components/ui/PageFrame'
 import { PageHeader } from '../../../components/ui/PageHeader'
 import { SectionCard } from '../../../components/ui/SectionCard'
 import { listServices, saveAttendanceBatch } from '../../../services/supabase'
-import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '../../../utils/formatters'
+import { formatCurrency, formatCurrencyInput } from '../../../utils/formatters'
 import { captureAppError } from '../../../lib/observability'
+import {
+  attendanceSubmitError,
+  attendanceSummaryNames,
+  attendanceTotal,
+  buildAttendanceSaveItems,
+  estimatedCommission,
+  hasAttendanceSelection,
+  toggleAvulsoSelection,
+} from '../newAttendanceDraft'
 
 const initialForm = {
   cliente_nome: '',
   servico_ids: [],
   valores_personalizados: {},
+  servico_avulso_selecionado: false,
+  servico_avulso_nome: '',
+  servico_avulso_valor: '',
   data_hora: dayjs().format('YYYY-MM-DDTHH:mm'),
 }
 
@@ -38,23 +50,36 @@ export function EmployeeNewAttendancePage() {
     [services, form.servico_ids],
   )
 
+  const avulso = {
+    selecionado: form.servico_avulso_selecionado,
+    nome: form.servico_avulso_nome,
+    valor: form.servico_avulso_valor,
+  }
   const valorFinal = useMemo(
     () =>
-      selectedServices.reduce((sum, service) => {
-        const customValue = parseCurrencyInput(form.valores_personalizados?.[service.id] || '')
-        const value = service.valor_editavel ? customValue : Number(service.valor || 0)
-        return sum + value
-      }, 0),
-    [selectedServices, form.valores_personalizados],
+      attendanceTotal(selectedServices, form.valores_personalizados, {
+        selecionado: form.servico_avulso_selecionado,
+        nome: form.servico_avulso_nome,
+        valor: form.servico_avulso_valor,
+      }),
+    [
+      selectedServices,
+      form.valores_personalizados,
+      form.servico_avulso_selecionado,
+      form.servico_avulso_nome,
+      form.servico_avulso_valor,
+    ],
   )
+  const summaryNames = attendanceSummaryNames(selectedServices, avulso)
+  const canSubmit = hasAttendanceSelection(selectedServices.length, form.servico_avulso_selecionado)
   const isAdmin = profile?.tipo === 'admin'
   const receivesCommission = Boolean(profile?.recebe_comissao)
   const dashboardLabel = isAdmin ? 'Admin' : 'Funcionário'
   const operationBadge = isAdmin ? 'Operação administrativa' : 'Ordem de chegada'
   const goToAttendancesPath = isAdmin ? '/admin/atendimentos' : '/funcionario/meus-atendimentos'
   const comissaoEstimada = useMemo(
-    () => (receivesCommission ? (valorFinal * Number(profile?.percentual_comissao || 0)) / 100 : 0),
-    [profile?.percentual_comissao, receivesCommission, valorFinal],
+    () => estimatedCommission(valorFinal, profile),
+    [profile, valorFinal],
   )
 
   function toggleService(serviceId) {
@@ -69,26 +94,24 @@ export function EmployeeNewAttendancePage() {
     })
   }
 
+  function toggleServicoAvulso() {
+    setForm((old) => toggleAvulsoSelection(old))
+  }
+
   async function handleSubmit(event) {
     event.preventDefault()
     const clienteNome = form.cliente_nome.trim()
-    if (!clienteNome) {
-      setError('Informe o nome do cliente para continuar.')
+    const submitError = attendanceSubmitError({
+      clienteNome,
+      selectedServices,
+      valoresPersonalizados: form.valores_personalizados,
+      avulso,
+    })
+    if (submitError) {
+      setError(submitError)
       return
     }
-    if (!selectedServices.length) {
-      setError('Selecione ao menos um serviço para continuar.')
-      return
-    }
-    const hasInvalidEditableValue = selectedServices.some(
-      (service) =>
-        service.valor_editavel &&
-        !(parseCurrencyInput(form.valores_personalizados?.[service.id]) > 0),
-    )
-    if (hasInvalidEditableValue) {
-      setError('Preencha o valor final de todos os serviços com valor flexível.')
-      return
-    }
+    const items = buildAttendanceSaveItems(selectedServices, form.valores_personalizados, avulso)
     setSaving(true)
     setError('')
     setFeedback('')
@@ -97,15 +120,10 @@ export function EmployeeNewAttendancePage() {
         usuario_id: profile.id,
         cliente_nome: clienteNome,
         data_hora: form.data_hora,
-        items: selectedServices.map((service) => ({
-          servico_id: service.id,
-          valor_servico: service.valor_editavel
-            ? parseCurrencyInput(form.valores_personalizados?.[service.id] || '')
-            : Number(service.valor || 0),
-        })),
+        items,
       })
       setFeedback(
-        `${selectedServices.length} serviço(s) lançado(s) com sucesso. Pronto para o próximo atendimento.`,
+        `${items.length} serviço(s) lançado(s) com sucesso. Pronto para o próximo atendimento.`,
       )
       if (submitMode === 'list') {
         navigate(goToAttendancesPath)
@@ -117,13 +135,13 @@ export function EmployeeNewAttendancePage() {
           valores_personalizados: {},
         })
       }
-    } catch (submitError) {
-      captureAppError(submitError, {
+    } catch (saveError) {
+      captureAppError(saveError, {
         source: 'EmployeeNewAttendancePage.handleSubmit',
         userId: profile?.id,
         selectedServices: selectedServices.length,
       })
-      setError(submitError.message || 'Falha ao salvar atendimento.')
+      setError(saveError.message || 'Falha ao salvar atendimento.')
     } finally {
       setSaving(false)
     }
@@ -193,8 +211,57 @@ export function EmployeeNewAttendancePage() {
                     </button>
                   )
                 })}
+                <button
+                  type="button"
+                  onClick={toggleServicoAvulso}
+                  className={`rounded-xl border p-3 text-left transition ${
+                    form.servico_avulso_selecionado
+                      ? 'border-sky-500/60 bg-sky-500/10 shadow-[0_0_16px_rgba(56,189,248,0.12)]'
+                      : 'border-slate-700 bg-slate-950/70 hover:border-slate-500'
+                  }`}
+                >
+                  <p className="text-sm font-semibold text-slate-100">Serviço avulso</p>
+                  <p className="mt-1 text-xs text-slate-400">Valor informado</p>
+                  <p className="mt-2 text-sm font-medium text-sky-300">
+                    {form.servico_avulso_selecionado && form.servico_avulso_valor
+                      ? formatCurrency(attendanceTotal([], {}, avulso))
+                      : 'Informar valor'}
+                  </p>
+                </button>
               </div>
             </div>
+
+            {form.servico_avulso_selecionado ? (
+              <div className="space-y-2">
+                <FormField label="O que foi feito">
+                  <input
+                    className="input h-12"
+                    required
+                    value={form.servico_avulso_nome}
+                    placeholder="Ex.: Pezinho do cabelo"
+                    onChange={(event) =>
+                      setForm((old) => ({ ...old, servico_avulso_nome: event.target.value }))
+                    }
+                  />
+                </FormField>
+                <FormField label="Valor cobrado">
+                  <input
+                    className="input h-12"
+                    type="text"
+                    inputMode="numeric"
+                    required
+                    value={form.servico_avulso_valor}
+                    placeholder="0,00"
+                    onChange={(event) =>
+                      setForm((old) => ({
+                        ...old,
+                        servico_avulso_valor: formatCurrencyInput(event.target.value),
+                      }))
+                    }
+                  />
+                </FormField>
+              </div>
+            ) : null}
 
             {selectedServices.some((service) => service.valor_editavel) ? (
               <div className="space-y-2">
@@ -231,7 +298,7 @@ export function EmployeeNewAttendancePage() {
               <button
                 type="submit"
                 className="btn-primary h-12 w-full text-sm font-semibold sm:flex-1"
-                disabled={saving || form.servico_ids.length === 0}
+                disabled={saving || !canSubmit}
                 onClick={() => setSubmitMode('next')}
               >
                 {saving && submitMode === 'next' ? 'Salvando...' : 'Salvar e lançar próximo'}
@@ -239,7 +306,7 @@ export function EmployeeNewAttendancePage() {
               <button
                 type="submit"
                 className="btn-secondary h-12 w-full sm:w-auto"
-                disabled={saving || form.servico_ids.length === 0}
+                disabled={saving || !canSubmit}
                 onClick={() => setSubmitMode('list')}
               >
                 {saving && submitMode === 'list' ? 'Salvando...' : 'Salvar e ver atendimentos'}
@@ -256,9 +323,7 @@ export function EmployeeNewAttendancePage() {
             <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">
               <p className="text-xs uppercase tracking-wide text-slate-500">Serviço selecionado</p>
               <p className="mt-1 font-medium text-slate-100">
-                {selectedServices.length
-                  ? selectedServices.map((service) => service.nome).join(' + ')
-                  : 'Não selecionado'}
+                {summaryNames.length ? summaryNames.join(' + ') : 'Não selecionado'}
               </p>
             </div>
             <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3">

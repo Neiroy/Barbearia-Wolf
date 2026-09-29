@@ -1,5 +1,5 @@
 import dayjs from 'dayjs'
-import { getCommissionMonthlySummary, listAttendances } from './attendanceService'
+import { getAttendanceServiceName, getCommissionMonthlySummary, listAttendances } from './attendanceService'
 import { listExpenses } from './expensesService'
 import { getBarberWeekRange } from '../../utils/dateRanges'
 import { splitRowCashflow, sumCashflowSplits, calculateMonthlyFinancial } from '../../utils/financialCalculations'
@@ -82,7 +82,7 @@ export async function getAdminDashboardSnapshot() {
     Object.entries(employeeTotals).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Sem dados'
 
   const serviceTotals = monthRows.reduce((acc, row) => {
-    const key = row.servico?.nome || 'Sem servico'
+    const key = getAttendanceServiceName(row) || 'Sem servico'
     acc[key] = (acc[key] || 0) + 1
     return acc
   }, {})

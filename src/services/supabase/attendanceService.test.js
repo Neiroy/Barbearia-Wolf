@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mapWeeklySummaryToClosurePayload } from './attendanceService'
+import { getAttendanceServiceName, mapVendaItem, mapWeeklySummaryToClosurePayload } from './attendanceService'
 
 describe('attendanceService fechamento semanal', () => {
   it('monta payload de fechamento com status preservado', () => {
@@ -40,5 +40,42 @@ describe('attendanceService fechamento semanal', () => {
         status_pagamento: 'aberto',
       },
     ])
+  })
+})
+
+describe('nome do serviço no atendimento', () => {
+  it('prioriza o nome cadastrado e usa o avulso quando não há cadastro', () => {
+    expect(getAttendanceServiceName({ servico: { nome: 'Degradê' } })).toBe('Degradê')
+    expect(
+      getAttendanceServiceName({
+        servico: null,
+        servico_avulso_nome: 'Pezinho do cabelo',
+      }),
+    ).toBe('Pezinho do cabelo')
+    expect(
+      getAttendanceServiceName({
+        servico: { nome: 'Degradê' },
+        servico_avulso_nome: 'Pezinho do cabelo',
+      }),
+    ).toBe('Degradê')
+    expect(getAttendanceServiceName({ servico: null, servico_avulso_nome: '   ' })).toBe('')
+  })
+
+  it('mantém o payload do serviço cadastrado e separa o avulso', () => {
+    expect(mapVendaItem({ servico_id: 'deg', valor_servico: 35 })).toEqual({
+      servico_id: 'deg',
+      valor_informado: 35,
+    })
+    expect(
+      mapVendaItem({
+        servico_id: null,
+        servico_avulso_nome: '  Pezinho do cabelo  ',
+        valor_servico: 10,
+      }),
+    ).toEqual({
+      servico_id: null,
+      servico_avulso_nome: 'Pezinho do cabelo',
+      valor_informado: 10,
+    })
   })
 })

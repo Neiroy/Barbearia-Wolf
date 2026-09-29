@@ -8,7 +8,7 @@ import { StatCard } from '../../../components/ui/StatCard'
 import { SectionCard } from '../../../components/ui/SectionCard'
 import { DataTable } from '../../../components/ui/DataTable'
 import { EmptyState } from '../../../components/ui/FeedbackStates'
-import { listAttendances } from '../../../services/supabase'
+import { getAttendanceServiceName, listAttendances } from '../../../services/supabase'
 import { formatCurrency } from '../../../utils/formatters'
 import { captureAppError } from '../../../lib/observability'
 import { useToast } from '../../../context/ToastContext'
@@ -68,7 +68,7 @@ export function AdminProductionPage() {
 
   const serviceRows = useMemo(() => {
     const grouped = attendances.reduce((acc, row) => {
-      const key = row.servico?.nome || 'Sem serviço'
+      const key = getAttendanceServiceName(row) || 'Sem serviço'
       if (!acc[key]) {
         acc[key] = { servico: key, quantidade: 0, total_vendido: 0 }
       }

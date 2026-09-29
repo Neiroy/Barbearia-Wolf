@@ -10,7 +10,7 @@ import { StatCard } from '../../../components/ui/StatCard'
 import { SummaryGrid } from '../../../components/ui/SummaryGrid'
 import { PerformanceKpiCard } from '../components/PerformanceKpiCard'
 import { QuickActionLinks } from '../components/QuickActionLinks'
-import { calculateWeeklySummary, groupAttendancesByCombo, listAttendances } from '../../../services/supabase'
+import { calculateWeeklySummary, getAttendanceServiceName, groupAttendancesByCombo, listAttendances } from '../../../services/supabase'
 import { formatCurrency } from '../../../utils/formatters'
 import { getBarberWeekRange } from '../../../utils/dateRanges'
 
@@ -36,7 +36,7 @@ export function EmployeeWeeklySummaryPage() {
   const ticketMedio = totals.totalServicos ? totals.totalVendido / totals.totalServicos : 0
   const topService = useMemo(() => {
     const grouped = rows.reduce((acc, row) => {
-      const key = row.servico?.nome || 'Não informado'
+      const key = getAttendanceServiceName(row) || 'Não informado'
       acc[key] = (acc[key] || 0) + 1
       return acc
     }, {})

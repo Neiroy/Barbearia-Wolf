@@ -80,12 +80,24 @@ create table public.atendimentos (
   venda_id uuid not null references public.vendas(id) on delete restrict,
   usuario_id uuid not null references public.usuarios(id) on delete restrict,
   cliente_nome text not null,
-  servico_id uuid not null references public.servicos(id) on delete restrict,
+  servico_id uuid references public.servicos(id) on delete restrict,
+  servico_avulso_nome text,
   valor_servico numeric(10,2) not null check (valor_servico >= 0),
   percentual_comissao numeric(5,2) not null check (percentual_comissao >= 0),
   valor_comissao numeric(10,2) not null check (valor_comissao >= 0),
   data_hora timestamptz not null default now(),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  constraint atendimentos_servico_origem_check check (
+    (
+      servico_id is not null
+      and servico_avulso_nome is null
+    )
+    or (
+      servico_id is null
+      and servico_avulso_nome is not null
+      and length(btrim(servico_avulso_nome)) > 0
+    )
+  )
 );
 
 create index idx_atendimentos_venda_id on public.atendimentos(venda_id);
@@ -356,13 +368,68 @@ declare
   v_recebe_comissao boolean;
   v_status text;
   v_ativo boolean;
+  v_avulso text;
 begin
-  select id, valor, valor_editavel into v_servico
-  from public.servicos
-  where id = new.servico_id and ativo = true;
+  if new.servico_id is not null then
+    select id, valor, valor_editavel into v_servico
+    from public.servicos
+    where id = new.servico_id and ativo = true;
 
-  if v_servico.id is null then
+    if v_servico.id is null then
+      raise exception 'Servico invalido ou inativo.';
+    end if;
+
+    select percentual_comissao, recebe_comissao, coalesce(ativo, true)
+      into v_percentual, v_recebe_comissao, v_ativo
+    from public.usuarios
+    where id = new.usuario_id;
+
+    if v_percentual is null or v_recebe_comissao is null then
+      raise exception 'Funcionario invalido para comissao.';
+    end if;
+
+    if not v_ativo then
+      raise exception 'Funcionario inativo. Reative o perfil para lancar atendimento.';
+    end if;
+
+    if v_recebe_comissao = false then
+      v_percentual := 0;
+    end if;
+
+    select status_pagamento into v_status
+    from public.vendas
+    where id = new.venda_id;
+
+    if v_status is null then
+      raise exception 'Venda nao encontrada para o atendimento.';
+    end if;
+
+    if v_servico.valor_editavel = false then
+      new.valor_servico := v_servico.valor;
+    elsif new.valor_servico < v_servico.valor then
+      raise exception 'Valor informado abaixo do minimo permitido.';
+    end if;
+
+    new.percentual_comissao := v_percentual;
+
+    if v_recebe_comissao and v_status = 'pago' then
+      new.valor_comissao := round((new.valor_servico * v_percentual) / 100, 2);
+    else
+      new.valor_comissao := 0;
+    end if;
+
+    return new;
+  end if;
+
+  v_avulso := nullif(btrim(coalesce(new.servico_avulso_nome, '')), '');
+  if v_avulso is null then
     raise exception 'Servico invalido ou inativo.';
+  end if;
+
+  new.servico_avulso_nome := v_avulso;
+
+  if coalesce(new.valor_servico, 0) <= 0 then
+    raise exception 'Valor do servico avulso deve ser maior que zero.';
   end if;
 
   select percentual_comissao, recebe_comissao, coalesce(ativo, true)
@@ -388,12 +455,6 @@ begin
 
   if v_status is null then
     raise exception 'Venda nao encontrada para o atendimento.';
-  end if;
-
-  if v_servico.valor_editavel = false then
-    new.valor_servico := v_servico.valor;
-  elsif new.valor_servico < v_servico.valor then
-    raise exception 'Valor informado abaixo do minimo permitido.';
   end if;
 
   new.percentual_comissao := v_percentual;
@@ -511,6 +572,7 @@ declare
   v_venda_id uuid := gen_random_uuid();
   v_item jsonb;
   v_servico_id uuid;
+  v_avulso text;
   v_valor_informado numeric;
 begin
   if p_usuario_id is null then
@@ -546,11 +608,25 @@ begin
 
   for v_item in select * from jsonb_array_elements(p_itens)
   loop
-    v_servico_id := (v_item->>'servico_id')::uuid;
+    if nullif(btrim(coalesce(v_item->>'servico_id', '')), '') is null then
+      v_servico_id := null;
+    else
+      v_servico_id := (v_item->>'servico_id')::uuid;
+    end if;
+
+    v_avulso := nullif(btrim(coalesce(v_item->>'servico_avulso_nome', '')), '');
     v_valor_informado := coalesce((v_item->>'valor_informado')::numeric, 0);
 
-    if v_servico_id is null then
+    if v_servico_id is not null and v_avulso is not null then
+      raise exception 'Item da venda nao pode misturar servico cadastrado e avulso.';
+    end if;
+
+    if v_servico_id is null and v_avulso is null then
       raise exception 'Servico invalido no item da venda.';
+    end if;
+
+    if v_servico_id is null and v_valor_informado <= 0 then
+      raise exception 'Valor do servico avulso deve ser maior que zero.';
     end if;
 
     insert into public.atendimentos (
@@ -558,6 +634,7 @@ begin
       usuario_id,
       cliente_nome,
       servico_id,
+      servico_avulso_nome,
       valor_servico,
       percentual_comissao,
       valor_comissao,
@@ -568,6 +645,7 @@ begin
       p_usuario_id,
       btrim(p_cliente_nome),
       v_servico_id,
+      v_avulso,
       v_valor_informado,
       0,
       0,
